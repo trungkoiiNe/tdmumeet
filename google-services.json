@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "494406299402",
+    "project_id": "tdmumeeting",
+    "storage_bucket": "tdmumeeting.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:494406299402:android:e04dd15bb26e4110c994f3",
+        "android_client_info": {
+          "package_name": "com.anonymous.tdmumeet"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "494406299402-7nsh0qc3qr0g6kosvac42h70cpgjsmsj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.anonymous.tdmumeet",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "494406299402-e5bennlnih02vlga83sbfo31jre6il6d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCh45kszPxBgEHMqr5b2EuegNlA7tt6Lco"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "494406299402-e5bennlnih02vlga83sbfo31jre6il6d.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
