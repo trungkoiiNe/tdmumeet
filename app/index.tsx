@@ -1,86 +1,34 @@
-import React, { useMemo } from 'react';
-import { Button, Text, View, StyleSheet } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
-import { useAuthStore } from '../stores/authStore';
-import { User } from '@react-native-google-signin/google-signin';
+import { Redirect } from "expo-router";
+import { useAuthStore } from "../stores/authStore";
+import { MMKV } from "react-native-mmkv";
+import { View } from "react-native";
+import { Animated } from "react-native";
+import { useEffect } from "react";
 
-type UserRowProps = {
-  label: string;
-  value: string | null;
-};
+const storage = new MMKV();
 
-// Moved to constant to prevent recreation
-const USER_FIELDS = [
-  { id: '1', label: 'Name', key: 'name' },
-  { id: '2', label: 'Email', key: 'email' },
-  { id: '3', label: 'Family Name', key: 'familyName' },
-  { id: '4', label: 'Given Name', key: 'givenName' },
-  { id: '5', label: 'ID', key: 'id' },
-] as const;
+export default function MainStack() {
+  const { user, loading } = useAuthStore();
+  const fadeAnim = new Animated.Value(0);
 
-// Memoized to prevent unnecessary re-renders
-const UserRow = React.memo(({ label, value }: UserRowProps) => (
-  <View style={styles.row}>
-    <Text style={styles.label}>{label}:</Text>
-    <Text style={styles.value}>{value || 'Not provided'}</Text>
-  </View>
-));
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
-UserRow.displayName = 'UserRow';
+  if (loading) {
+    return null;
+  }
 
-export default function App() {
-  const { signIn, signOut } = useAuthStore();
-  const user = useAuthStore(state => state.user?.data.user);
-
-  // Memoized data transformation to prevent unnecessary recalculations
-  const userData = useMemo(() => {
-    if (!user) return [];
-    return USER_FIELDS.map(({ id, label, key }) => ({
-      id,
-      label,
-      value: user[key as keyof typeof user]
-    }));
-  }, [user]);
+  const storedUser = storage.getString("user");
+  const hasUser = !!storedUser || !!user;
 
   return (
-    <View style={styles.container}>
-      <Button title="Login" onPress={signIn} />
-      {user && (
-        <>
-          <Button title="Logout" onPress={signOut} />
-          <FlashList
-            data={userData}
-            renderItem={({ item }) => (
-              <UserRow label={item.label} value={item.value} />
-            )}
-            estimatedItemSize={50}
-            keyExtractor={item => item.id}
-            removeClippedSubviews={true}
-            initialNumToRender={5}
-          />
-        </>
-      )}
-    </View>
+    <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+      {!hasUser ? <Redirect href="/login" /> : <Redirect href="/(user)" />}
+    </Animated.View>
   );
 }
-
-// Styles moved to bottom and kept outside component
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  row: {
-    flexDirection: 'row',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  label: {
-    fontWeight: 'bold',
-    marginRight: 8,
-    width: 100,
-  },
-  value: {
-    flex: 1,
-  },
-});

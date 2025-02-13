@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Only allow users to read/write their own profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Rules for teams collection
+    match /teams/{teamId} {
+      // Allow creation for authenticated users with valid team data
+      allow create: if request.auth != null 
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.members.hasOnly([request.auth.uid])
+        && request.resource.data.inviteCode is string
+        && request.resource.data.inviteCode.size() == 6;
+
+      // Allow reading if:
+      // - User is a member of the team
+      // - User is the creator
+      // - Team is public
+      allow read: if request.auth != null && (
+        resource.data.members.hasAny([request.auth.uid]) ||
+        resource.data.createdBy == request.auth.uid ||
+        resource.data.isPublic == true
+      );
+
+      // Allow updates if:
+      // - User is the creator (for general updates)
+      // - OR user is joining the team (only allow modifying members array)
+      allow update: if request.auth != null && (
+        resource.data.createdBy == request.auth.uid ||
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']) &&
+          request.resource.data.members.hasAll(resource.data.members) &&
+          request.resource.data.members.removeAll(resource.data.members).hasOnly([request.auth.uid])
+        )
+      );
+
+      // Allow deletion only by team creator
+      allow delete: if request.auth != null 
+        && resource.data.createdBy == request.auth.uid;
+    }
+  }
+}

@@ -21,7 +21,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.tdmumeet",
+      "package": "com.anonymous.tdmumeettt",
       "googleServicesFile": "./google-services.json"
     },
     "web": {
