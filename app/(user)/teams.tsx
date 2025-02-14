@@ -342,7 +342,6 @@ export default function TeamsScreen() {
               >
                 <Text style={styles.buttonText}>Cancel</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[styles.modalButton, styles.submitButton]}
                 onPress={handleJoinTeam}
@@ -353,9 +352,6 @@ export default function TeamsScreen() {
           </View>
         </View>
       </Modal>
-      <TouchableOpacity onPress={handleJoinTeam2}>
-        <Text>Join Team</Text>
-      </TouchableOpacity>
     </View>
   );
 }

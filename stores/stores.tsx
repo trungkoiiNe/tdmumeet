@@ -224,16 +224,15 @@ export const useStore = create<Store>((set, get) => ({
     }
   },
 
-  joinTeam: async (inviteCode: string) => {
+  joinTeam: async (providedInviteCode: string) => {
     try {
       const user = auth().currentUser;
+      // const inviteCodeSplitted = providedInviteCode.split("");
+      // console.log("inviteCodeSplitted", inviteCodeSplitted);
       if (!user) throw new Error("No authenticated user");
-
-      // Find team with matching invite code
-      firestore().collection("teams").where("inviteCode", "==", inviteCode).get();
-      const teamsSnapshot = await firestore()
-        .collection("teams")
-        .where("inviteCode", "==", inviteCode)
+      const teamsCollection = firestore().collection("teams");
+      const teamsSnapshot = await teamsCollection
+        .where("inviteCode", "==", providedInviteCode)
         .get();
       if (teamsSnapshot.empty) {
         throw new Error("Invalid invite code");
