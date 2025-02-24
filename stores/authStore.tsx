@@ -1,10 +1,10 @@
 import { create } from "zustand";
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
-import firestore from "@react-native-firebase/firestore";
+import { getFirestore, doc, setDoc } from "@react-native-firebase/firestore";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { toast } from '@baronha/ting';
 import { MMKV } from 'react-native-mmkv';
-
+// globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
 // Initialize MMKV
 export const storage = new MMKV();
 
@@ -48,11 +48,16 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
       
       try {
-        await firestore().collection("users").doc(currentUser.uid).set({
-          email: currentUser.email,
-          name: currentUser.displayName,
-          photo: currentUser.photoURL,
-        }, { merge: true });
+        const db = getFirestore();
+        await setDoc(
+          doc(db, "users", currentUser.uid),
+          {
+            email: currentUser.email,
+            name: currentUser.displayName,
+            photo: currentUser.photoURL,
+          },
+          { merge: true }
+        );
         console.log("User profile updated for:", currentUser.uid);
         
       } catch (firestoreError) {

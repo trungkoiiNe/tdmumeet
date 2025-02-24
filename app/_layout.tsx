@@ -1,7 +1,9 @@
-import { Slot, useSegments, useRouter } from "expo-router";
+import { Stack, Slot } from "expo-router";
 import { useEffect } from "react";
+import { useSegments, useRouter } from "expo-router";
 import { useAuthStore } from "../stores/authStore";
 import { MMKV } from "react-native-mmkv";
+import React = require("react");
 
 const storage = new MMKV();
 
@@ -14,22 +16,19 @@ export default function RootLayout() {
     const inLoginScreen = segments[0] === "login";
     const inAdminGroup = segments[0] === "(admin)";
     const inUserGroup = segments[0] === "(user)";
-
-    // Check MMKV storage
     const storedUser = storage.getString("user");
     const hasUser = !!storedUser || !!user;
 
     if (!hasUser && !inLoginScreen) {
-      router.replace("/login");
+      router.navigate("/login");
       return;
     }
-
     if (hasUser) {
       const storedRole = storage.getString("userRole");
       if (storedRole === "admin" && !inAdminGroup) {
-        router.replace("/(admin)");
+        router.navigate("/(admin)");
       } else if ((storedRole === "user" || !storedRole) && !inUserGroup) {
-        router.replace("/(user)");
+        router.navigate("/(user)");
       }
     }
   }, [user, segments, router]);

@@ -41,5 +41,14 @@ service cloud.firestore {
       allow delete: if request.auth != null 
         && resource.data.createdBy == request.auth.uid;
     }
+
+    // Rules for invitations collection
+    match /invitations/{inviteCode} {
+      allow read: if request.auth != null;
+      // Only allow creation during team creation
+      allow create: if request.auth != null;
+      // Allow deletion when invitation expires or team is deleted
+      allow delete: if request.auth != null;
+    }
   }
 }
