@@ -1,8 +1,7 @@
-import { Stack, Slot } from "expo-router";
+import { Slot, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
-import { useSegments, useRouter } from "expo-router";
-import { useAuthStore } from "../stores/authStore";
 import { MMKV } from "react-native-mmkv";
+import { useAuthStore } from "../stores/authStore";
 import React = require("react");
 
 const storage = new MMKV();

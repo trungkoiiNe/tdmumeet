@@ -1,26 +1,22 @@
-import { create } from "zustand";
-import auth from "@react-native-firebase/auth";
 import { toast } from "@baronha/ting";
-import { Meeting } from "../types";
-import { 
-  getFirestore, 
-  doc, 
-  getDoc, 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  runTransaction, 
-  serverTimestamp, 
-  arrayUnion, 
-  onSnapshot,
-  orderBy,
-  setDoc
-} from '@react-native-firebase/firestore';
-
+import auth from "@react-native-firebase/auth";
+import { create } from "zustand";
+import {
+  addDoc,
+  arrayUnion,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  getFirestore,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where,
+} from "@react-native-firebase/firestore";
+import { UserData } from "../types";
 interface Team {
   id: string;
   name: string;
@@ -30,6 +26,7 @@ interface Team {
   createdAt: Date;
   isPublic: boolean;
   inviteCode: string; // added to comply with rules
+  tags: string[]; // added tags field
 }
 
 interface Invitation {
@@ -38,16 +35,10 @@ interface Invitation {
   outdateTime: Date;
 }
 
-interface UserData {
-  uid: string;
-  displayName: string;
-  email: string;
-  photoURL?: string;
-}
-
 interface Store {
   userProfile: any | null;
   getUserProfile: () => Promise<void>;
+  getUserById: (id: string) => Promise<any>;
   createRoom?: (roomData: Team) => Promise<void>;
   teams: Team[];
   loadingTeams: boolean;
@@ -57,20 +48,6 @@ interface Store {
   deleteTeam: (teamId: string) => Promise<void>;
   joinTeam: (inviteCode: string) => Promise<void>;
   getTeamById: (teamId: string) => Promise<Team | null>;
-  getTeamMeetings: (teamId: string) => Promise<Meeting[]>;
-  createMeeting: (meetingData: Partial<Meeting>) => Promise<void>;
-  joinMeeting: (meetingId: string) => Promise<void>;
-  leaveTeam: (teamId: string) => Promise<void>;
-  getUsersByIds: (userIds: string[]) => Promise<UserData[]>;
-  usersCache: Record<string, UserData>;
-  subscribeToTeam: (
-    teamId: string,
-    callback: (team: Team) => void
-  ) => () => void;
-  subscribeToMeetings: (
-    teamId: string,
-    callback: (meetings: Meeting[]) => void
-  ) => () => void;
 }
 
 const generateInviteCode = () => {
@@ -108,6 +85,20 @@ export const useStore = create<Store>((set, get) => ({
       console.error("Error fetching user profile:", error);
     }
   },
+  getUserById: async (userId: string) => {
+    try {
+      const userDoc = await getDoc(doc(db, "users", userId));
+      if (userDoc.exists) {
+        return userDoc.data() as UserData;
+      } else {
+        console.warn("User not found for id:", userId);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching user by ID:", error);
+      return null;
+    }
+  },
   createRoom: async (roomData) => {
     try {
       // Create a new room document in the Firestore collection "rooms".
@@ -132,9 +123,18 @@ export const useStore = create<Store>((set, get) => ({
       // Query for teams where user is creator or member
       const [createdTeamsSnapshot, memberTeamsSnapshot, publicTeamsSnapshot] =
         await Promise.all([
-          getDocs(query(collection(db, "teams"), where("createdBy", "==", user.uid))),
-          getDocs(query(collection(db, "teams"), where("members", "array-contains", user.uid))),
-          getDocs(query(collection(db, "teams"), where("isPublic", "==", true))),
+          getDocs(
+            query(collection(db, "teams"), where("createdBy", "==", user.uid))
+          ),
+          getDocs(
+            query(
+              collection(db, "teams"),
+              where("members", "array-contains", user.uid)
+            )
+          ),
+          getDocs(
+            query(collection(db, "teams"), where("isPublic", "==", true))
+          ),
         ]);
 
       const createdTeams = createdTeamsSnapshot.docs.map((doc) => ({
@@ -282,7 +282,9 @@ export const useStore = create<Store>((set, get) => ({
       if (!user) throw new Error("No authenticated user");
 
       // Get invitation document
-      const invitationDocSnap = await getDoc(doc(db, "invitations", inviteCode));
+      const invitationDocSnap = await getDoc(
+        doc(db, "invitations", inviteCode)
+      );
 
       if (!invitationDocSnap.exists) {
         throw new Error("Invalid invite code");
@@ -333,9 +335,9 @@ export const useStore = create<Store>((set, get) => ({
   getTeamById: async (teamId: string) => {
     try {
       const teamDocSnap = await getDoc(doc(db, "teams", teamId));
-
-      if (!teamDocSnap.exists) {console.log("ccac")};
-
+      if (!teamDocSnap.exists) {
+        console.log("cac");
+      }
       return {
         id: teamDocSnap.id,
         ...teamDocSnap.data(),
@@ -344,162 +346,5 @@ export const useStore = create<Store>((set, get) => ({
       console.error("Error fetching team:", error);
       return null;
     }
-  },
-
-  getTeamMeetings: async (teamId: string) => {
-    try {
-      const meetingsQuery = query(
-        collection(db, "meetings"),
-        where("teamId", "==", teamId),
-        where("endTime", ">=", Date.now()),
-        orderBy("endTime", "asc")
-      );
-      const meetingsSnapshot = await getDocs(meetingsQuery);
-
-      return meetingsSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Meeting[];
-    } catch (error) {
-      console.error("Error fetching meetings:", error);
-      return [];
-    }
-  },
-
-  createMeeting: async (meetingData: Partial<Meeting>) => {
-    try {
-      const currentUser = auth().currentUser;
-      if (!currentUser) throw new Error("Not authenticated");
-
-      await addDoc(collection(db, "meetings"), {
-        ...meetingData,
-        createdBy: currentUser.uid,
-        participants: [currentUser.uid],
-        createdAt: Date.now(),
-      });
-    } catch (error) {
-      console.error("Error creating meeting:", error);
-      throw error;
-    }
-  },
-
-  joinMeeting: async (meetingId: string) => {
-    try {
-      const currentUser = auth().currentUser;
-      if (!currentUser) throw new Error("Not authenticated");
-
-      const meetingRef = doc(db, "meetings", meetingId);
-      await runTransaction(db, async (transaction) => {
-        const meetingDocSnap = await transaction.get(meetingRef);
-        if (!meetingDocSnap.exists) throw new Error("Meeting not found");
-
-        const meetingData = meetingDocSnap.data();
-        if (!meetingData.participants.includes(currentUser.uid)) {
-          transaction.update(meetingRef, {
-            participants: [...meetingData.participants, currentUser.uid],
-          });
-        }
-      });
-    } catch (error) {
-      console.error("Error joining meeting:", error);
-      throw error;
-    }
-  },
-
-  leaveTeam: async (teamId: string) => {
-    try {
-      const currentUser = auth().currentUser;
-      if (!currentUser) throw new Error("Not authenticated");
-
-      const teamRef = doc(db, "teams", teamId);
-      await runTransaction(db, async (transaction) => {
-        const teamDocSnap = await transaction.get(teamRef);
-        if (!teamDocSnap.exists) throw new Error("Team not found");
-
-        const teamData = teamDocSnap.data();
-        if (teamData.createdBy === currentUser.uid) {
-          throw new Error("Team creator cannot leave the team");
-        }
-
-        const updatedMembers = teamData.members.filter(
-          (id) => id !== currentUser.uid
-        );
-        transaction.update(teamRef, { members: updatedMembers });
-      });
-
-      // Refresh teams list
-      get().getTeams();
-    } catch (error) {
-      console.error("Error leaving team:", error);
-      throw error;
-    }
-  },
-
-  usersCache: {},
-
-  getUsersByIds: async (userIds: string[]) => {
-    try {
-      const cache = get().usersCache;
-      const uncachedIds = userIds.filter((id) => !cache[id]);
-
-      if (uncachedIds.length > 0) {
-        const usersSnapshot = await getDocs(query(collection(db, "users"), where("uid", "in", uncachedIds)));
-
-        const newUsers = {};
-        usersSnapshot.forEach((doc) => {
-          const userData = doc.data() as UserData;
-          newUsers[userData.uid] = userData;
-        });
-
-        set((state) => ({
-          usersCache: { ...state.usersCache, ...newUsers },
-        }));
-      }
-
-      return userIds.map(
-        (id) => cache[id] || { uid: id, displayName: "Unknown User", email: "" }
-      );
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      return userIds.map((id) => ({
-        uid: id,
-        displayName: "Unknown User",
-        email: "",
-      }));
-    }
-  },
-
-  subscribeToTeam: (teamId: string, callback: (team: Team) => void) => {
-    const unsub = onSnapshot(doc(db, "teams", teamId), (docSnap) => {
-      if (docSnap.exists) {
-        callback({
-          id: docSnap.id,
-          ...docSnap.data(),
-        } as Team);
-      }
-    });
-
-    return unsub;
-  },
-
-  subscribeToMeetings: (
-    teamId: string,
-    callback: (meetings: Meeting[]) => void
-  ) => {
-    const meetingsQuery = query(
-      collection(db, "meetings"),
-      where("teamId", "==", teamId),
-      where("endTime", ">=", Date.now()),
-      orderBy("endTime", "asc")
-    );
-    const unsub = onSnapshot(meetingsQuery, (snapshot) => {
-      const meetings = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Meeting[];
-      callback(meetings);
-    });
-
-    return unsub;
   },
 }));
