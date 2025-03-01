@@ -23,6 +23,15 @@ export default function UserTabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="(teams)"
+        options={{
+          title: "Teams",
+          tabBarIcon: ({ color }) => (
+            <FontAwesome size={28} name="users" color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

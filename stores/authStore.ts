@@ -1,21 +1,19 @@
-import { create } from "zustand";
+import { toast } from "@baronha/ting";
 import getAuth, {
   FirebaseAuthTypes,
+  onAuthStateChanged,
   signInWithCredential,
   signOut,
-  onAuthStateChanged,
 } from "@react-native-firebase/auth";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import {
-  collection,
-  query,
-  where,
-  getDocs,
-  getFirestore,
-  setDoc,
   doc,
   getDoc,
+  getFirestore,
+  setDoc,
 } from "@react-native-firebase/firestore";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { create } from "zustand";
+import { MMKV } from "react-native-mmkv";
 const db = getFirestore();
 
 GoogleSignin.configure({
@@ -23,13 +21,20 @@ GoogleSignin.configure({
     "999189881408-ib9b35keqg7ngbssb5afmq5mb2on5bt8.apps.googleusercontent.com",
 });
 const auth = getAuth();
+
+// Create a MMKV storage instance
+const storage = new MMKV();
+
 interface AuthStore {
   getUser: () => FirebaseAuthTypes.User | null;
   login: () => Promise<void>;
   logout: () => Promise<void>;
   changeAvatar: (image: string) => Promise<void>;
   getAvatar: () => Promise<string>;
+  // New method to retrieve stored token
+  getStoredToken: () => string;
   // getUserByUid: (uid: string) => Promise<Object | null>;
+  getUserByUid: (uid: string) => Promise<Object | null>;
 }
 export const useAuthStore = create<AuthStore>((set) => ({
   getUser: () => {
@@ -46,6 +51,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (!idToken) {
         throw new Error("No ID token found");
       }
+      // Store token using MMKV
+      storage.set("idToken", idToken);
+
       // Create a Google credential with the token
       const googleCredential = getAuth.GoogleAuthProvider.credential(idToken);
       // console.log(googleCredential);
@@ -53,7 +61,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
       await signInWithCredential(auth, googleCredential);
       const user = auth.currentUser;
       if ((await getDoc(doc(db, "users", user.uid))).exists === false) {
-        console.log("User not found in database, creating new user");
         await setDoc(doc(db, "users", user.uid), {
           displayName: user.displayName,
           email: user.email,
@@ -61,7 +68,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
           phoneNumber: user.phoneNumber,
         });
       }
-      console.log("User signed in");
+      const options = {
+        type: "success",
+        title: "Success",
+        message: "Login successful",
+      };
+      toast(options);
     } catch (error) {
       console.error("error", error);
     }
@@ -76,15 +88,23 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }
   },
   changeAvatar: async (image: string) => {
-    const user = auth.currentUser;
-    if (!user) {
-      return;
-    }
-    await setDoc(
-      doc(db, "users", user.uid),
-      { photoURL: image },
-      { merge: true }
-    );
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        return;
+      }
+      await setDoc(
+        doc(db, "users", user.uid),
+        { photoURL: image },
+        { merge: true }
+      );
+      const options = {
+        type: "success",
+        title: "Success",
+        message: "Avatar updated successfully",
+      };
+      toast(options);
+    } catch (error) {}
   },
   getAvatar: async () => {
     try {
@@ -98,6 +118,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
       console.error(error);
     }
   },
+  // New method to get stored idToken using MMKV
+  getStoredToken: () => {
+    return storage.getString("idToken") || "";
+  },
   // getUserByUid: async (uid: string) => {
   //   try {
   //     const userDoc = await getDocs(query(collection(db, "users"), uid));
@@ -107,4 +131,13 @@ export const useAuthStore = create<AuthStore>((set) => ({
   //     return null;
   //   }
   // },
+  getUserByUid: async (uid: string) => {
+    try {
+      const userDoc = await getDoc(doc(db, "users", uid));
+      return userDoc.data();
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  },
 }));

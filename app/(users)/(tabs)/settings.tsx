@@ -4,8 +4,9 @@ import { useAuthStore } from "../../../stores/authStore";
 import ContentLoader, { Rect } from "react-content-loader/native";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
+import pickupImage from "../../../utils/avatar";
 export default function settings() {
-  const { getUser, changeAvatar, getAvatar } = useAuthStore();
+  const { getUser, changeAvatar, getAvatar, logout } = useAuthStore();
   const user = getUser();
   const [avatar, setAvatar] = useState<string>("");
   useEffect(() => {
@@ -13,54 +14,21 @@ export default function settings() {
       setIsImageLoading(true);
       getAvatar().then((avatar) => {
         // console.log(avatar);
-        setAvatar("data:image/png;base64,".concat(avatar));
+
+        setAvatar(avatar);
       });
     }
   }, [user]);
 
   const [isImageLoading, setIsImageLoading] = useState(true);
-  const pickupImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      alert("Sorry, we need camera roll permissions to make this work!");
-      return;
-    } else if (status === "granted") {
-      let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 1, // Start with high quality
-        base64: false, // Do NOT convert to Base64 yet
+  const pick = async () => {
+    let image = await pickupImage();
+    if (image) {
+      setIsImageLoading(true);
+      image = "data:image/jpeg;base64," + image;
+      await changeAvatar(image).then(() => {
+        setAvatar(image);
       });
-      if (!result.canceled) {
-        let imageUri = result.assets[0].uri;
-
-        // Compress & Resize the image to fit under 1MB
-        let compressedImage = await ImageManipulator.manipulateAsync(
-          imageUri,
-          [{ resize: { width: 800 } }], // Resize width to 800px (adjust as needed)
-          {
-            compress: 0.7,
-            format: ImageManipulator.SaveFormat.JPEG,
-            base64: true,
-          }
-        );
-
-        // Ensure the base64 size is under 1MB
-        let base64Size = (compressedImage.base64.length * (3 / 4)) / 1024; // Convert to KB
-        console.log(`Base64 size: ${base64Size.toFixed(2)} KB`);
-
-        if (base64Size > 1000) {
-          console.warn(
-            "Image still too large. Consider reducing quality or resizing further."
-          );
-          return;
-        }
-        await changeAvatar(compressedImage.base64);
-        // Update avatar state after changing avatar
-        getAvatar().then((newAvatar) => {
-          setAvatar("data:image/png;base64,".concat(newAvatar));
-        });
-      }
     }
   };
   // Reset image loading state when user changes (e.g., logout sets user to null, then later re-login)
@@ -92,7 +60,7 @@ export default function settings() {
           // />
           <Image
             style={styles.avatar}
-            source={{ uri: avatar || user.photoURL }}
+            source={{ uri: avatar }}
             onLoadEnd={() => setIsImageLoading(false)}
           />
         )}
@@ -102,7 +70,8 @@ export default function settings() {
           <InfoItem label="Username" value={user.displayName} />
           <InfoItem label="Email" value={user.email} />
           <InfoItem label="Phone" value={user.phoneNumber} />
-          <Button title="Change Avatar" onPress={() => pickupImage()} />
+          <Button title="Change Avatar" onPress={() => pick()} />
+          <Button title="Logout" onPress={logout} />
         </>
       )}
     </View>
