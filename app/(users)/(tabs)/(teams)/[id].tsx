@@ -8,16 +8,18 @@ import {
   TextInput,
   Alert,
   StyleSheet,
+  ActivityIndicator,
+  Modal,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useTeamStore } from "../../../../stores/teamStore";
 import { Feather, MaterialIcons, Ionicons } from "@expo/vector-icons";
-import CustomModal from "../../../../components/CustomModal";
 import * as ImagePicker from "expo-image-picker";
 import { useAuthStore } from "../../../../stores/authStore";
 import { getAuth } from "@react-native-firebase/auth";
 import ContentLoader, { Rect, Circle } from "react-content-loader/native";
-
+import "react-native-get-random-values";
+import { v4 as uuidv4 } from "uuid";
 // Create TeamSkeleton component for loading state
 const TeamSkeleton = () => (
   <ScrollView style={styles.container}>
@@ -131,10 +133,48 @@ const TeamSkeleton = () => (
   </ScrollView>
 );
 
+// Add new SimpleModal component
+const SimpleModal = ({
+  visible,
+  title,
+  onClose,
+  onConfirm,
+  confirmText,
+  children,
+}) => {
+  return (
+    <Modal visible={visible} transparent animationType="slide">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>{title}</Text>
+          {children}
+          <View style={styles.modalButtons}>
+            <TouchableOpacity onPress={onClose} style={styles.modalButton}>
+              <Text>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onConfirm} style={styles.modalButton}>
+              <Text>{confirmText || "Confirm"}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 export default function TeamDetailsScreen() {
   const { id } = useLocalSearchParams();
-  const { getTeamById, updateTeam, deleteTeam, joinTeam, leaveTeam } =
-    useTeamStore();
+  const {
+    getTeamById,
+    updateTeam,
+    deleteTeam,
+    joinTeam,
+    leaveTeam,
+    fetchChannels, // added
+    addChannel, // added
+    deleteChannel, // added
+    channels, // added
+  } = useTeamStore();
   const [team, setTeam] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -154,9 +194,21 @@ export default function TeamDetailsScreen() {
   // Add state to store member information
   const [teamMembers, setTeamMembers] = useState([]);
 
+  // New states for channel creation modal
+  const [isChannelModalVisible, setIsChannelModalVisible] = useState(false);
+  const [newChannelName, setNewChannelName] = useState("");
+  const [newChannelDesc, setNewChannelDesc] = useState("");
+
   useEffect(() => {
     fetchTeamDetails();
   }, [id]);
+
+  // New effect to fetch channels once team details are loaded
+  useEffect(() => {
+    if (team) {
+      fetchChannels(team.id);
+    }
+  }, [team]);
 
   const fetchTeamDetails = async () => {
     setLoading(true);
@@ -277,6 +329,34 @@ export default function TeamDetailsScreen() {
         },
       ]);
     }
+  };
+
+  const handleCreateChannel = async () => {
+    if (!newChannelName.trim() || !team || !currentUser) return;
+    const channelId = uuidv4();
+    const newChannel = {
+      id: channelId,
+      teamId: team.id,
+      name: newChannelName,
+      desc: newChannelDesc,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      createdBy: currentUser.uid,
+      isPrivate: false,
+      members: [],
+    };
+    await addChannel(newChannel);
+    fetchChannels(team.id);
+    // Reset and close modal
+    setNewChannelName("");
+    setNewChannelDesc("");
+    setIsChannelModalVisible(false);
+  };
+
+  const handleDeleteChannel = async (channelId: string) => {
+    if (!team) return;
+    await deleteChannel(team.id, channelId);
+    fetchChannels(team.id);
   };
 
   if (loading) {
@@ -432,13 +512,12 @@ export default function TeamDetailsScreen() {
       )}
 
       {/* Edit Modal */}
-      <CustomModal
+      <SimpleModal
         visible={isEditModalVisible}
         title="Edit Team"
         onClose={() => setIsEditModalVisible(false)}
         onConfirm={handleEditTeam}
-        message="Save Changes"
-        modalType="custom"
+        confirmText="Save Changes"
       >
         <View style={styles.modalContent}>
           <TouchableOpacity
@@ -499,7 +578,76 @@ export default function TeamDetailsScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </CustomModal>
+      </SimpleModal>
+
+      {/* New Channels Section with Create and Delete actions */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>Channels</Text>
+        {channels.map((channel) => (
+          <View
+            key={channel.id}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <TouchableOpacity
+              style={{ flex: 1 }}
+              onPress={() =>
+                router.push(
+                  `/(users)/(tabs)/(teams)/(channels)/${channel.id}?teamId=${team.id}`
+                )
+              }
+            >
+              <Text style={styles.channelNameText}>{channel.name}</Text>
+              <Text style={styles.channelDescText}>{channel.desc}</Text>
+            </TouchableOpacity>
+            {(isCurrentUserOwner || channel.createdBy === currentUser?.uid) && (
+              <TouchableOpacity onPress={() => handleDeleteChannel(channel.id)}>
+                <Feather name="trash" size={16} color="red" />
+              </TouchableOpacity>
+            )}
+          </View>
+        ))}
+        {isCurrentUserOwner && (
+          <TouchableOpacity
+            style={[styles.actionButton, { marginTop: 16 }]}
+            onPress={() => setIsChannelModalVisible(true)}
+          >
+            <Feather name="plus" size={18} color="#2563eb" />
+            <Text style={[styles.editActionText, { marginLeft: 8 }]}>
+              Create Channel
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Create Channel Modal */}
+      <SimpleModal
+        visible={isChannelModalVisible}
+        title="Create Channel"
+        onClose={() => setIsChannelModalVisible(false)}
+        onConfirm={handleCreateChannel}
+        confirmText="Create"
+      >
+        <View style={styles.modalContent}>
+          <Text style={styles.inputLabel}>Channel Name</Text>
+          <TextInput
+            value={newChannelName}
+            onChangeText={setNewChannelName}
+            placeholder="Enter channel name"
+            style={styles.textInput}
+          />
+          <Text style={styles.inputLabel}>Description</Text>
+          <TextInput
+            value={newChannelDesc}
+            onChangeText={setNewChannelDesc}
+            placeholder="Enter channel description"
+            style={styles.textInput}
+          />
+        </View>
+      </SimpleModal>
     </ScrollView>
   );
 }
@@ -745,5 +893,40 @@ const styles = StyleSheet.create({
   },
   leaveButtonText: {
     color: "#DC2626", // Red text for leave
+  },
+  channelItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  channelNameText: { fontSize: 16, fontWeight: "500" },
+  channelDescText: { fontSize: 14, color: "#6b7280" },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContainer: {
+    backgroundColor: "white",
+    borderRadius: 8,
+    padding: 16,
+    width: "80%",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 12,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: 12,
+  },
+  modalButton: {
+    marginLeft: 12,
+    padding: 8,
+    backgroundColor: "#eee",
+    borderRadius: 4,
   },
 });

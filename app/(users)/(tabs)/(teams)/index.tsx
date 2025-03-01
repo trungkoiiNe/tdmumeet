@@ -2,7 +2,6 @@ import { Feather, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  FlatList,
   Image,
   Modal,
   StyleSheet,
@@ -16,6 +15,9 @@ import { v4 as uuidv4 } from "uuid";
 import { useTeamStore } from "../../../../stores/teamStore";
 import pickupImage from "../../../../utils/avatar";
 import { getAuth } from "@react-native-firebase/auth";
+import { FlashList } from "@shopify/flash-list";
+import ContentLoader, { Rect } from "react-content-loader/native";
+
 // Create Team Modal Component
 const CreateTeamModal = ({ visible, onClose, onSubmit }) => {
   const [teamName, setTeamName] = useState("");
@@ -144,6 +146,20 @@ const CreateTeamModal = ({ visible, onClose, onSubmit }) => {
   );
 };
 
+const MyCustomLoader = () => {
+  return (
+    <ContentLoader
+      speed={1}
+      width={300}
+      height={80}
+      backgroundColor="#f3f3f3"
+      foregroundColor="#ecebeb"
+    >
+      <Rect x="0" y="0" rx="5" ry="5" width="300" height="80" />
+    </ContentLoader>
+  );
+};
+
 export default function TeamsScreen() {
   const { teams, fetchTeams, addTeam, deleteTeam } = useTeamStore();
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
@@ -225,18 +241,12 @@ export default function TeamsScreen() {
         </TouchableOpacity>
       </View>
 
-      <FlatList
+      <FlashList
         data={teams}
         renderItem={renderTeamItem}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              No teams found. Create a team to get started!
-            </Text>
-          </View>
-        }
+        ListEmptyComponent={<MyCustomLoader />}
       />
 
       <CreateTeamModal

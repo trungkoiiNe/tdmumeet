@@ -1,26 +1,36 @@
-import { View, Text, Button, StyleSheet, Image } from "react-native";
-import React, { useState, useEffect } from "react";
-import { useAuthStore } from "../../../stores/authStore";
+import React, { useEffect, useState } from "react";
+import { Button, Image, StyleSheet, Text, View, Switch } from "react-native";
 import ContentLoader, { Rect } from "react-content-loader/native";
-import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
+import { useAuthStore } from "../../../stores/authStore";
 import pickupImage from "../../../utils/avatar";
+import { MMKV } from "react-native-mmkv";
+
+const storage = new MMKV();
+
 export default function settings() {
   const { getUser, changeAvatar, getAvatar, logout } = useAuthStore();
   const user = getUser();
   const [avatar, setAvatar] = useState<string>("");
+  const [isImageLoading, setIsImageLoading] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
+
   useEffect(() => {
     if (user) {
       setIsImageLoading(true);
       getAvatar().then((avatar) => {
-        // console.log(avatar);
-
         setAvatar(avatar);
       });
     }
+    const storedDarkMode = storage.getBoolean("DARK_MODE");
+    setDarkMode(storedDarkMode ?? false);
   }, [user]);
 
-  const [isImageLoading, setIsImageLoading] = useState(true);
+  const toggleDarkMode = () => {
+    const newValue = !darkMode;
+    setDarkMode(newValue);
+    storage.set("DARK_MODE", newValue);
+  };
+
   const pick = async () => {
     let image = await pickupImage();
     if (image) {
@@ -31,7 +41,6 @@ export default function settings() {
       });
     }
   };
-  // Reset image loading state when user changes (e.g., logout sets user to null, then later re-login)
 
   function InfoItem({ label, value }) {
     return (
@@ -44,6 +53,10 @@ export default function settings() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>User Info</Text>
+      <View style={styles.darkModeContainer}>
+        <Text style={styles.darkModeText}>Dark Mode</Text>
+        <Switch value={darkMode} onValueChange={toggleDarkMode} />
+      </View>
       <View style={styles.avatarContainer}>
         {isImageLoading && (
           <ContentLoader width={100} height={100} viewBox="0 0 100 100">
@@ -51,13 +64,6 @@ export default function settings() {
           </ContentLoader>
         )}
         {user && (
-          // <ExpoImage
-          //   source={{ uri: images[0] }}
-
-          //   style={styles.avatar}
-          //   onLoadEnd={() => setIsImageLoading(false)}
-          //   contentFit="cover"
-          // />
           <Image
             style={styles.avatar}
             source={{ uri: avatar }}
@@ -117,5 +123,15 @@ const styles = StyleSheet.create({
   cellValue: {
     flex: 2,
     color: "#666",
+  },
+  darkModeContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginVertical: 10,
+  },
+  darkModeText: {
+    fontSize: 16,
+    color: "#333",
   },
 });
