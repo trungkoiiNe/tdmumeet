@@ -1,25 +1,25 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  ScrollView,
-  TextInput,
-  Alert,
-  StyleSheet,
-  ActivityIndicator,
-  Modal,
-} from "react-native";
-import { useLocalSearchParams, router } from "expo-router";
-import { useTeamStore } from "../../../../stores/teamStore";
-import { Feather, MaterialIcons, Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
-import { useAuthStore } from "../../../../stores/authStore";
+import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { getAuth } from "@react-native-firebase/auth";
-import ContentLoader, { Rect, Circle } from "react-content-loader/native";
+import * as ImagePicker from "expo-image-picker";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
+import ContentLoader, { Circle, Rect } from "react-content-loader/native";
+import {
+  Alert,
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from "react-native";
 import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
+import { useAuthStore } from "../../../../stores/authStore";
+import { useTeamStore } from "../../../../stores/teamStore";
+import meetingServices from "../../../../services/meetingServices";
 // Create TeamSkeleton component for loading state
 const TeamSkeleton = () => (
   <ScrollView style={styles.container}>

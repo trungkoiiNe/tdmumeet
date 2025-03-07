@@ -1,10 +1,25 @@
-import { View, Text } from "react-native";
 import React from "react";
 import { Tabs } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useThemeStore } from "../../../stores/themeStore";
+import { darkTheme, lightTheme } from "../../../utils/themes";
+
 export default function UserTabsLayout() {
+  const { isDarkMode } = useThemeStore();
+  const theme = isDarkMode ? darkTheme : lightTheme;
+
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: "blue", headerShown: false }}>
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: theme.primaryColor,
+        tabBarInactiveTintColor: theme.tertiaryTextColor,
+        tabBarStyle: {
+          backgroundColor: theme.cardBackgroundColor,
+          borderTopColor: theme.borderColor,
+        },
+        headerShown: false,
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{

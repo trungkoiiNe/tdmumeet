@@ -1,8 +1,5 @@
 import { Stack } from "expo-router";
 import React from "react";
-import { TouchableOpacity } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
 
 export default function TeamsLayout() {
   return (

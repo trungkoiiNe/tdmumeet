@@ -9,10 +9,13 @@ import {
   collection,
   getDocs,
   updateDoc,
+  query,
+  orderBy,
+  onSnapshot,
 } from "@react-native-firebase/firestore";
 import { toast } from "@baronha/ting";
+import meetingServices from "../services/meetingServices";
 const db = getFirestore();
-
 type Team = {
   id: string;
   name: string;
@@ -25,7 +28,15 @@ type Team = {
   tags: string[];
   isPublic: boolean;
 };
-
+type Message = {
+  id: string;
+  channelId: string;
+  text: string;
+  userId: string;
+  createdAt: number;
+  updatedAt: number;
+  file: string;
+};
 // New Channel type
 type Channel = {
   id: string;
@@ -38,12 +49,22 @@ type Channel = {
   isPrivate: boolean;
   members: string[]; // For private channels
 };
-
+type Meeting = {
+  id: string;
+  teamId: string;
+  channelId: string;
+  startTime: number;
+  endTime: number;
+  title: string;
+  desc: string;
+  createdBy: string;
+};
 type TeamStore = {
   teams: Team[];
   team: Team | null;
   channels: Channel[];
   currentChannel: Channel | null;
+  meetings: Meeting[];
   fetchTeams: () => Promise<void>;
   addTeam: (team: Team) => Promise<void>;
   updateTeam: (team: Team) => Promise<void>;
@@ -73,6 +94,30 @@ type TeamStore = {
     channelId: string,
     userId: string
   ) => Promise<void>;
+  // addMessage: (channelId: string, message: Message) => Promise<void>;
+
+  messages: Message[];
+  loading: boolean;
+  listenToMessages: (teamId: string, channelId: string) => () => void; // Returns an unsubscribe function
+  getMessages: (teamId: string, channelId: string) => Promise<Message[]>;
+  addMessage: (teamId: string, message: Message) => Promise<void>;
+  updateMessage: (teamId: string, message: Message) => Promise<void>;
+  deleteMessage: (teamId: string, message: Message) => Promise<void>;
+
+  // Meeting CRUD operations
+  fetchMeetings: (teamId: string, channelId: string) => Promise<void>;
+  addMeeting: (meeting: Meeting) => Promise<void>;
+  updateMeeting: (meeting: Meeting) => Promise<void>;
+  deleteMeeting: (
+    teamId: string,
+    channelId: string,
+    meetingId: string
+  ) => Promise<void>;
+  getMeetingById: (
+    teamId: string,
+    channelId: string,
+    meetingId: string
+  ) => Promise<Meeting | null>;
 };
 
 export const useTeamStore = create<TeamStore>((set, get) => ({
@@ -80,6 +125,9 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
   team: null,
   channels: [],
   currentChannel: null,
+  messages: [],
+  meetings: [], // Add meetings array to state initialization
+  loading: false,
   fetchTeams: async () => {
     const snapshot = await getDocs(collection(db, "teams"));
     const teams = snapshot.docs.map((doc) => doc.data() as Team);
@@ -506,6 +554,292 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
         message: "Failed to leave channel",
       };
       toast(options);
+    }
+  },
+  // Message CRUD operations with corrected paths
+  listenToMessages: (teamId, channelId) => {
+    set({ loading: true });
+
+    // Corrected path structure: teams/{teamId}/channels/{channelId}/messages
+    const messagesRef = collection(
+      db,
+      "teams",
+      teamId,
+      "channels",
+      channelId,
+      "messages"
+    );
+    const q = query(messagesRef, orderBy("createdAt", "asc"));
+
+    // Set up real-time listener
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const messages = snapshot.docs.map((doc) => doc.data() as Message);
+        set({ messages, loading: false });
+      },
+      (error) => {
+        console.error("Error listening to messages:", error);
+        set({ loading: false });
+      }
+    );
+
+    // Return unsubscribe function to caller
+    return unsubscribe;
+  },
+
+  getMessages: async (teamId, channelId) => {
+    try {
+      set({ loading: true });
+      // Corrected path structure: teams/{teamId}/channels/{channelId}/messages
+      const messagesRef = collection(
+        db,
+        "teams",
+        teamId,
+        "channels",
+        channelId,
+        "messages"
+      );
+      const q = query(messagesRef, orderBy("createdAt", "asc"));
+      const snapshot = await getDocs(q);
+      const messages = snapshot.docs.map((doc) => doc.data() as Message);
+      set({ messages, loading: false });
+      return messages;
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      set({ loading: false });
+      return [];
+    }
+  },
+
+  addMessage: async (teamId, message) => {
+    try {
+      // Corrected path structure: teams/{teamId}/channels/{channelId}/messages
+      const messagesRef = collection(
+        db,
+        "teams",
+        teamId,
+        "channels",
+        message.channelId,
+        "messages"
+      );
+
+      // Use addDoc to auto-generate ID if not provided
+      if (message.id) {
+        await setDoc(doc(messagesRef, message.id), message);
+      } else {
+        const docRef = await addDoc(messagesRef, message);
+        // Update the message with the generated ID
+        await updateDoc(docRef, { id: docRef.id });
+      }
+
+      // No need to update local state as the listener will handle that
+    } catch (error) {
+      console.error("Error adding message:", error);
+      const options = {
+        type: "error",
+        message: "Failed to send message",
+      };
+      toast(options);
+    }
+  },
+
+  deleteMessage: async (teamId, message) => {
+    try {
+      // Corrected path structure: teams/{teamId}/channels/{channelId}/messages
+      const messageRef = doc(
+        db,
+        "teams",
+        teamId,
+        "channels",
+        message.channelId,
+        "messages",
+        message.id
+      );
+      await deleteDoc(messageRef);
+      // No need to update local state as the listener will handle that
+
+      const options = {
+        type: "success",
+        message: "Message deleted",
+      };
+      toast(options);
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      const options = {
+        type: "error",
+        message: "Failed to delete message",
+      };
+      toast(options);
+    }
+  },
+
+  updateMessage: async (teamId, message) => {
+    try {
+      // Corrected path structure: teams/{teamId}/channels/{channelId}/messages
+      const messageRef = doc(
+        db,
+        "teams",
+        teamId,
+        "channels",
+        message.channelId,
+        "messages",
+        message.id
+      );
+      await updateDoc(messageRef, {
+        text: message.text,
+        updatedAt: Date.now(),
+      });
+      // No need to update local state as the listener will handle that
+
+      const options = {
+        type: "success",
+        message: "Message updated",
+      };
+      toast(options);
+    } catch (error) {
+      console.error("Error updating message:", error);
+      const options = {
+        type: "error",
+        message: "Failed to update message",
+      };
+      toast(options);
+    }
+  },
+  // Meeting CRUD operations
+  fetchMeetings: async (teamId, channelId) => {
+    try {
+      const meetingsRef = collection(
+        db,
+        "teams",
+        teamId,
+        "channels",
+        channelId,
+        "meetings"
+      );
+      const snapshot = await getDocs(meetingsRef);
+      const meetings = snapshot.docs.map((doc) => doc.data() as Meeting);
+      set({ meetings });
+    } catch (error) {
+      console.error("Error fetching meetings:", error);
+      const options = {
+        type: "error",
+        message: "Failed to load meetings",
+      };
+      toast(options);
+    }
+  },
+
+  addMeeting: async (meeting) => {
+    try {
+      const meetingRef = doc(
+        db,
+        "teams",
+        meeting.teamId,
+        "channels",
+        meeting.channelId,
+        "meetings",
+        meeting.id
+      );
+      await setDoc(meetingRef, meeting);
+      set((state) => ({ meetings: [...state.meetings, meeting] }));
+      const roomname = meeting.id;
+      await meetingServices.createRoom(roomname);
+      const options = {
+        type: "success",
+        message: "Meeting created successfully",
+      };
+      toast(options);
+    } catch (error) {
+      console.error("Error creating meeting:", error);
+      const options = {
+        type: "error",
+        message: "Failed to create meeting",
+      };
+      toast(options);
+    }
+  },
+
+  updateMeeting: async (meeting) => {
+    try {
+      const meetingRef = doc(
+        db,
+        "teams",
+        meeting.teamId,
+        "channels",
+        meeting.channelId,
+        "meetings",
+        meeting.id
+      );
+      await setDoc(meetingRef, meeting);
+      const updated = get().meetings.map((m) =>
+        m.id === meeting.id ? meeting : m
+      );
+      set({ meetings: updated });
+      const options = {
+        type: "success",
+        message: "Meeting updated successfully",
+      };
+      toast(options);
+    } catch (error) {
+      console.error("Error updating meeting:", error);
+      const options = {
+        type: "error",
+        message: "Failed to update meeting",
+      };
+      toast(options);
+    }
+  },
+
+  deleteMeeting: async (teamId, channelId, meetingId) => {
+    try {
+      const meetingRef = doc(
+        db,
+        "teams",
+        teamId,
+        "channels",
+        channelId,
+        "meetings",
+        meetingId
+      );
+      await deleteDoc(meetingRef);
+      const filtered = get().meetings.filter((m) => m.id !== meetingId);
+      set({ meetings: filtered });
+
+      const options = {
+        type: "success",
+        message: "Meeting deleted successfully",
+      };
+      toast(options);
+    } catch (error) {
+      console.error("Error deleting meeting:", error);
+      const options = {
+        type: "error",
+        message: "Failed to delete meeting",
+      };
+      toast(options);
+    }
+  },
+
+  getMeetingById: async (teamId, channelId, meetingId) => {
+    try {
+      const meetingRef = doc(
+        db,
+        "teams",
+        teamId,
+        "channels",
+        channelId,
+        "meetings",
+        meetingId
+      );
+      const meetingDoc = await getDoc(meetingRef);
+      if (meetingDoc.exists) {
+        return meetingDoc.data() as Meeting;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error getting meeting:", error);
+      return null;
     }
   },
 }));

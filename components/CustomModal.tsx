@@ -101,21 +101,21 @@ const CustomModal = ({
               {(modalType === "alert" ||
                 modalType === "input" ||
                 modalType === "deleteConfirm") && (
-                <TouchableOpacity
-                  onPress={() =>
-                    onConfirm?.(modalType === "input" ? inputValue : undefined)
-                  }
-                  style={[
-                    styles.button,
-                    modalType === "deleteConfirm"
-                      ? styles.dangerButton
-                      : styles.confirmButton,
-                  ]}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.confirmButtonText}>OK</Text>
-                </TouchableOpacity>
-              )}
+                  <TouchableOpacity
+                    onPress={() =>
+                      onConfirm?.(modalType === "input" ? inputValue : undefined)
+                    }
+                    style={[
+                      styles.button,
+                      modalType === "deleteConfirm"
+                        ? styles.dangerButton
+                        : styles.confirmButton,
+                    ]}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.confirmButtonText}>OK</Text>
+                  </TouchableOpacity>
+                )}
             </View>
           )}
         </View>
