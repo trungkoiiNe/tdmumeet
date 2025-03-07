@@ -20,7 +20,6 @@ import {
 import ContextMenu from "react-native-context-menu-view";
 import { useTeamStore } from "../../../../../stores/teamStore";
 import MeetingsList from "../../../../../components/MeetingsList";
-import meetingServices from "../../../../../services/meetingServices";
 
 // Message skeleton loader component
 const MessageSkeleton = () => {
@@ -147,6 +146,8 @@ export default function ChannelDetailsScreen() {
       createdAt: Date.now(),
       updatedAt: Date.now(),
       file: "", // No file for now
+      memberRead: [], // Initialize empty array of members who've read the message
+      memberUnread: [], // Initialize empty array of members who haven't read the message
     };
 
     await addMessage(teamId, newMessage);
@@ -221,7 +222,6 @@ export default function ChannelDetailsScreen() {
       actions.push({
         title: "Delete Channel",
         systemIcon: "trash",
-        attributes: { destructive: true },
         onPress: handleDelete,
       });
     }
@@ -303,7 +303,9 @@ export default function ChannelDetailsScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => {
+          router.back();
+        }}>
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{channel.name}</Text>

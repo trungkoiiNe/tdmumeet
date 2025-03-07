@@ -1,6 +1,5 @@
 import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { getAuth } from "@react-native-firebase/auth";
-import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import ContentLoader, { Circle, Rect } from "react-content-loader/native";
@@ -19,7 +18,7 @@ import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 import { useAuthStore } from "../../../../stores/authStore";
 import { useTeamStore } from "../../../../stores/teamStore";
-import meetingServices from "../../../../services/meetingServices";
+import pickupImage from "../../../../utils/avatar"; // Import the avatar utility function
 // Create TeamSkeleton component for loading state
 const TeamSkeleton = () => (
   <ScrollView style={styles.container}>
@@ -174,6 +173,7 @@ export default function TeamDetailsScreen() {
     addChannel, // added
     deleteChannel, // added
     channels, // added
+    setAvatarUrl
   } = useTeamStore();
   const [team, setTeam] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -187,6 +187,7 @@ export default function TeamDetailsScreen() {
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editAvatar, setEditAvatar] = useState("");
+  const [avatarChanged, setAvatarChanged] = useState(false); // Track if avatar was changed
   const [editTags, setEditTags] = useState("");
   const [editIsPublic, setEditIsPublic] = useState(true);
   const { getUserByUid } = useAuthStore();
@@ -226,6 +227,7 @@ export default function TeamDetailsScreen() {
       setEditName(fetchedTeam.name);
       setEditDesc(fetchedTeam.desc);
       setEditAvatar(fetchedTeam.avatar);
+      setAvatarChanged(false); // Reset avatar changed flag
       setEditTags(fetchedTeam.tags.join(", "));
       setEditIsPublic(fetchedTeam.isPublic);
 
@@ -260,7 +262,7 @@ export default function TeamDetailsScreen() {
       ...team,
       name: editName,
       desc: editDesc,
-      avatar: editAvatar,
+      avatar: editAvatar, // Avatar will be updated if changed
       tags: editTags
         .split(",")
         .map((tag) => tag.trim())
@@ -285,7 +287,7 @@ export default function TeamDetailsScreen() {
           style: "destructive",
           onPress: async () => {
             await deleteTeam(id.toString());
-            router.push("/(users)/(tabs)/(teams)");
+            router.back();
           },
         },
       ]
@@ -293,15 +295,19 @@ export default function TeamDetailsScreen() {
   };
 
   const handlePickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
+    try {
+      // Use the pickupImage utility function instead of raw ImagePicker
+      const base64Image = await pickupImage();
 
-    if (!result.canceled) {
-      setEditAvatar(result.assets[0].uri);
+      if (base64Image) {
+        // Convert to proper data URI format for displaying
+        const imageUri = `data:image/jpeg;base64,${base64Image}`;
+        setEditAvatar(imageUri);
+        setAvatarChanged(true);
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Failed to select image. Please try again.");
     }
   };
 

@@ -36,6 +36,9 @@ type Message = {
   createdAt: number;
   updatedAt: number;
   file: string;
+  memberRead: string[];
+  memberUnread: string[];
+  teamId?: string; // Optional for backward compatibility with existing messages
 };
 // New Channel type
 type Channel = {
@@ -49,22 +52,12 @@ type Channel = {
   isPrivate: boolean;
   members: string[]; // For private channels
 };
-type Meeting = {
-  id: string;
-  teamId: string;
-  channelId: string;
-  startTime: number;
-  endTime: number;
-  title: string;
-  desc: string;
-  createdBy: string;
-};
+
 type TeamStore = {
   teams: Team[];
   team: Team | null;
   channels: Channel[];
   currentChannel: Channel | null;
-  meetings: Meeting[];
   fetchTeams: () => Promise<void>;
   addTeam: (team: Team) => Promise<void>;
   updateTeam: (team: Team) => Promise<void>;
@@ -103,21 +96,18 @@ type TeamStore = {
   addMessage: (teamId: string, message: Message) => Promise<void>;
   updateMessage: (teamId: string, message: Message) => Promise<void>;
   deleteMessage: (teamId: string, message: Message) => Promise<void>;
-
-  // Meeting CRUD operations
-  fetchMeetings: (teamId: string, channelId: string) => Promise<void>;
-  addMeeting: (meeting: Meeting) => Promise<void>;
-  updateMeeting: (meeting: Meeting) => Promise<void>;
-  deleteMeeting: (
+  markMessageAsRead: (
     teamId: string,
-    channelId: string,
-    meetingId: string
+    message: Message,
+    uid: string
   ) => Promise<void>;
-  getMeetingById: (
+  fetchUnreadMessages: (userId: string) => Promise<Message[]>;
+  getUnreadCountForTeam: (teamId: string, userId: string) => number;
+  getUnreadCountForChannel: (
     teamId: string,
     channelId: string,
-    meetingId: string
-  ) => Promise<Meeting | null>;
+    userId: string
+  ) => number;
 };
 
 export const useTeamStore = create<TeamStore>((set, get) => ({
@@ -614,6 +604,28 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
 
   addMessage: async (teamId, message) => {
     try {
+      // First get the team to find all members
+      const teamRef = doc(db, "teams", teamId);
+      const teamDoc = await getDoc(teamRef);
+
+      if (!teamDoc.exists) {
+        throw new Error("Team not found");
+      }
+
+      const teamData = teamDoc.data() as Team;
+
+      // Add all team members to memberUnread except the sender
+      const memberUnread = teamData.members.filter(
+        (id) => id !== message.userId
+      );
+
+      // Create a modified message with the memberUnread and empty memberRead array
+      const updatedMessage = {
+        ...message,
+        memberUnread,
+        memberRead: [message.userId], // The sender has implicitly read the message
+      };
+
       // Corrected path structure: teams/{teamId}/channels/{channelId}/messages
       const messagesRef = collection(
         db,
@@ -625,10 +637,10 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
       );
 
       // Use addDoc to auto-generate ID if not provided
-      if (message.id) {
-        await setDoc(doc(messagesRef, message.id), message);
+      if (updatedMessage.id) {
+        await setDoc(doc(messagesRef, updatedMessage.id), updatedMessage);
       } else {
-        const docRef = await addDoc(messagesRef, message);
+        const docRef = await addDoc(messagesRef, updatedMessage);
         // Update the message with the generated ID
         await updateDoc(docRef, { id: docRef.id });
       }
@@ -706,140 +718,100 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
       toast(options);
     }
   },
-  // Meeting CRUD operations
-  fetchMeetings: async (teamId, channelId) => {
+  markMessageAsRead: async (teamId, message, uid) => {
     try {
-      const meetingsRef = collection(
+      const messageRef = doc(
         db,
         "teams",
         teamId,
         "channels",
-        channelId,
-        "meetings"
+        message.channelId,
+        "messages",
+        message.id
       );
-      const snapshot = await getDocs(meetingsRef);
-      const meetings = snapshot.docs.map((doc) => doc.data() as Meeting);
-      set({ meetings });
-    } catch (error) {
-      console.error("Error fetching meetings:", error);
-      const options = {
-        type: "error",
-        message: "Failed to load meetings",
-      };
-      toast(options);
-    }
-  },
 
-  addMeeting: async (meeting) => {
-    try {
-      const meetingRef = doc(
-        db,
-        "teams",
-        meeting.teamId,
-        "channels",
-        meeting.channelId,
-        "meetings",
-        meeting.id
-      );
-      await setDoc(meetingRef, meeting);
-      set((state) => ({ meetings: [...state.meetings, meeting] }));
-      const roomname = meeting.id;
-      await meetingServices.createRoom(roomname);
-      const options = {
-        type: "success",
-        message: "Meeting created successfully",
-      };
-      toast(options);
-    } catch (error) {
-      console.error("Error creating meeting:", error);
-      const options = {
-        type: "error",
-        message: "Failed to create meeting",
-      };
-      toast(options);
-    }
-  },
-
-  updateMeeting: async (meeting) => {
-    try {
-      const meetingRef = doc(
-        db,
-        "teams",
-        meeting.teamId,
-        "channels",
-        meeting.channelId,
-        "meetings",
-        meeting.id
-      );
-      await setDoc(meetingRef, meeting);
-      const updated = get().meetings.map((m) =>
-        m.id === meeting.id ? meeting : m
-      );
-      set({ meetings: updated });
-      const options = {
-        type: "success",
-        message: "Meeting updated successfully",
-      };
-      toast(options);
-    } catch (error) {
-      console.error("Error updating meeting:", error);
-      const options = {
-        type: "error",
-        message: "Failed to update meeting",
-      };
-      toast(options);
-    }
-  },
-
-  deleteMeeting: async (teamId, channelId, meetingId) => {
-    try {
-      const meetingRef = doc(
-        db,
-        "teams",
-        teamId,
-        "channels",
-        channelId,
-        "meetings",
-        meetingId
-      );
-      await deleteDoc(meetingRef);
-      const filtered = get().meetings.filter((m) => m.id !== meetingId);
-      set({ meetings: filtered });
-
-      const options = {
-        type: "success",
-        message: "Meeting deleted successfully",
-      };
-      toast(options);
-    } catch (error) {
-      console.error("Error deleting meeting:", error);
-      const options = {
-        type: "error",
-        message: "Failed to delete meeting",
-      };
-      toast(options);
-    }
-  },
-
-  getMeetingById: async (teamId, channelId, meetingId) => {
-    try {
-      const meetingRef = doc(
-        db,
-        "teams",
-        teamId,
-        "channels",
-        channelId,
-        "meetings",
-        meetingId
-      );
-      const meetingDoc = await getDoc(meetingRef);
-      if (meetingDoc.exists) {
-        return meetingDoc.data() as Meeting;
+      if (!uid) {
+        console.error("No authenticated user found");
+        return;
       }
-      return null;
+
+      // Update the message document - add user to memberRead and remove from memberUnread
+      await updateDoc(messageRef, {
+        memberRead: [...(message.memberRead || []), uid],
+        memberUnread: (message.memberUnread || []).filter((id) => id !== uid),
+        updatedAt: Date.now(),
+      });
+
+      // No need to update local state as the listener will handle that
     } catch (error) {
-      console.error("Error getting meeting:", error);
-      return null;
+      console.error("Error marking message as read:", error);
+      const options = {
+        type: "error",
+        message: "Failed to mark message as read",
+      };
+      toast(options);
     }
+  },
+  fetchUnreadMessages: async (userId) => {
+    try {
+      const teamsSnapshot = await getDocs(collection(db, "teams"));
+      const teams = teamsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      let unreadMessages: Message[] = [];
+
+      for (const team of teams) {
+        const channelsSnapshot = await getDocs(
+          collection(db, "teams", team.id, "channels")
+        );
+        const channels = channelsSnapshot.docs.map((doc) => doc.id);
+
+        for (const channelId of channels) {
+          const messagesSnapshot = await getDocs(
+            collection(db, "teams", team.id, "channels", channelId, "messages")
+          );
+          const messages = messagesSnapshot.docs
+            .map((doc) => {
+              const messageData = doc.data() as Message;
+              // Add the teamId to each message so we can navigate properly
+              return {
+                ...messageData,
+                teamId: team.id,
+              };
+            })
+            .filter((message) => message.memberUnread.includes(userId));
+
+          unreadMessages = [...unreadMessages, ...messages];
+        }
+      }
+
+      // Sort messages by createdAt timestamp (newest first)
+      return unreadMessages.sort((a, b) => b.createdAt - a.createdAt);
+    } catch (error) {
+      console.error("Error fetching unread messages:", error);
+      return [];
+    }
+  },
+  // ...after your existing state and methods, add:
+  getUnreadCountForTeam: (teamId: string, userId: string) => {
+    const { messages } = get();
+    return messages.filter(
+      (msg) => msg.teamId === teamId && !msg.memberRead.includes(userId)
+    ).length;
+  },
+  getUnreadCountForChannel: (
+    teamId: string,
+    channelId: string,
+    userId: string
+  ) => {
+    const { messages } = get();
+    return messages.filter(
+      (msg) =>
+        msg.teamId === teamId &&
+        msg.channelId === channelId &&
+        !msg.memberRead.includes(userId)
+    ).length;
   },
 }));

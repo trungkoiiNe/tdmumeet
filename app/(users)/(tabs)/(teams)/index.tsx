@@ -9,14 +9,21 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Animated,
 } from "react-native";
 import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 import { useTeamStore } from "../../../../stores/teamStore";
+import { useThemeStore } from "../../../../stores/themeStore";
+import { darkTheme, lightTheme } from "../../../../utils/themes";
 import pickupImage from "../../../../utils/avatar";
 import { getAuth } from "@react-native-firebase/auth";
 import { FlashList } from "@shopify/flash-list";
 import ContentLoader, { Rect } from "react-content-loader/native";
+import CustomModal from "../../../../components/CustomModal";
 
 // Create Team Modal Component
 const CreateTeamModal = ({ visible, onClose, onSubmit }) => {
@@ -25,6 +32,35 @@ const CreateTeamModal = ({ visible, onClose, onSubmit }) => {
   const [teamAvatar, setTeamAvatar] = useState("");
   const [teamTags, setTeamTags] = useState("");
   const [isPublic, setIsPublic] = useState(true);
+  const { isDarkMode } = useThemeStore();
+  const theme = isDarkMode ? darkTheme : lightTheme;
+  const slideAnim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    if (visible) {
+      // Reset form when opening
+      setTeamName("");
+      setTeamDesc("");
+      setTeamAvatar("");
+      setTeamTags("");
+      setIsPublic(true);
+
+      // Animate in
+      Animated.spring(slideAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        friction: 8,
+        tension: 40,
+      }).start();
+    } else {
+      // Animate out
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible]);
 
   const handlePickImage = async () => {
     try {
@@ -46,127 +82,249 @@ const CreateTeamModal = ({ visible, onClose, onSubmit }) => {
       tags: teamTags,
       isPublic: isPublic,
     });
-    // Reset form
-    setTeamName("");
-    setTeamDesc("");
-    setTeamAvatar("");
-    setTeamTags("");
-    setIsPublic(true);
   };
+
+  // Animation transforms
+  const translateY = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [300, 0],
+  });
+
+  const backdropOpacity = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.5],
+  });
 
   return (
     <Modal
       visible={visible}
       transparent={true}
-      animationType="slide"
+      animationType="none"
       onRequestClose={onClose}
     >
       <View style={modalStyles.modalOverlay}>
-        <View style={modalStyles.modalContainer}>
-          <View style={modalStyles.modalHeader}>
-            <Text style={modalStyles.modalTitle}>Create New Team</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Feather name="x" size={24} color="black" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={modalStyles.modalContent}>
-            <TouchableOpacity
-              onPress={handlePickImage}
-              style={modalStyles.avatarPicker}
-            >
-              <View style={modalStyles.avatarContainer}>
-                {teamAvatar ? (
-                  <Image
-                    source={{ uri: teamAvatar }}
-                    style={modalStyles.avatarImage}
-                  />
-                ) : (
-                  <Feather name="camera" size={24} color="gray" />
-                )}
-              </View>
-              <Text style={modalStyles.avatarPickerText}>Choose Avatar</Text>
-            </TouchableOpacity>
-
-            <Text style={modalStyles.inputLabel}>Team Name</Text>
-            <TextInput
-              value={teamName}
-              onChangeText={setTeamName}
-              placeholder="Enter team name"
-              style={modalStyles.textInput}
-            />
-
-            <Text style={modalStyles.inputLabel}>Description</Text>
-            <TextInput
-              value={teamDesc}
-              onChangeText={setTeamDesc}
-              placeholder="Enter team description"
-              multiline
-              numberOfLines={3}
-              style={modalStyles.textAreaInput}
-            />
-
-            <Text style={modalStyles.inputLabel}>Tags (comma separated)</Text>
-            <TextInput
-              value={teamTags}
-              onChangeText={setTeamTags}
-              placeholder="design, development, marketing"
-              style={modalStyles.textInput}
-            />
-
-            <View style={modalStyles.checkboxContainer}></View>
-            <Text style={modalStyles.checkboxLabel}>Public Team</Text>
-            <TouchableOpacity onPress={() => setIsPublic(!isPublic)}>
-              {isPublic ? (
-                <MaterialIcons name="check-box" size={24} color="blue" />
-              ) : (
-                <MaterialIcons
-                  name="check-box-outline-blank"
-                  size={24}
-                  color="gray"
-                />
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={modalStyles.modalFooter}>
-          <TouchableOpacity style={modalStyles.cancelButton} onPress={onClose}>
-            <Text style={modalStyles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={modalStyles.confirmButton}
-            onPress={handleSubmit}
+        <Animated.View
+          style={[
+            { opacity: backdropOpacity },
+            StyleSheet.absoluteFill,
+            { backgroundColor: 'black' }
+          ]}
+        />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ width: "100%" }}
+        >
+          <Animated.View
+            style={[
+              modalStyles.modalContainer,
+              {
+                backgroundColor: theme.cardBackgroundColor,
+                transform: [{ translateY }]
+              }
+            ]}
           >
-            <Text style={modalStyles.confirmButtonText}>Create Team</Text>
-          </TouchableOpacity>
-        </View>
+            <View style={modalStyles.modalHeader}>
+              <Text style={[modalStyles.modalTitle, { color: theme.textColor }]}>
+                Create New Team
+              </Text>
+              <TouchableOpacity onPress={onClose}>
+                <Feather name="x" size={24} color={theme.textColor} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={modalStyles.modalContent}>
+              <TouchableOpacity
+                onPress={handlePickImage}
+                style={modalStyles.avatarPicker}
+              >
+                <View style={[modalStyles.avatarContainer, { borderColor: theme.borderColor }]}>
+                  {teamAvatar ? (
+                    <Image
+                      source={{ uri: teamAvatar }}
+                      style={modalStyles.avatarImage}
+                    />
+                  ) : (
+                    <Feather name="camera" size={24} color={theme.tertiaryTextColor} />
+                  )}
+                </View>
+                <Text style={[modalStyles.avatarPickerText, { color: theme.primaryColor }]}>
+                  Choose Avatar
+                </Text>
+              </TouchableOpacity>
+
+              <Text style={[modalStyles.inputLabel, { color: theme.textColor }]}>Team Name</Text>
+              <TextInput
+                value={teamName}
+                onChangeText={setTeamName}
+                placeholder="Enter team name"
+                placeholderTextColor={theme.tertiaryTextColor}
+                style={[
+                  modalStyles.textInput,
+                  {
+                    borderColor: theme.inputBorderColor,
+                    color: theme.textColor,
+                    backgroundColor: theme.backgroundColor
+                  }
+                ]}
+              />
+
+              <Text style={[modalStyles.inputLabel, { color: theme.textColor }]}>Description</Text>
+              <TextInput
+                value={teamDesc}
+                onChangeText={setTeamDesc}
+                placeholder="Enter team description"
+                placeholderTextColor={theme.tertiaryTextColor}
+                multiline
+                numberOfLines={3}
+                style={[
+                  modalStyles.textAreaInput,
+                  {
+                    borderColor: theme.inputBorderColor,
+                    color: theme.textColor,
+                    backgroundColor: theme.backgroundColor
+                  }
+                ]}
+              />
+
+              <Text style={[modalStyles.inputLabel, { color: theme.textColor }]}>
+                Tags (comma separated)
+              </Text>
+              <TextInput
+                value={teamTags}
+                onChangeText={setTeamTags}
+                placeholder="design, development, marketing"
+                placeholderTextColor={theme.tertiaryTextColor}
+                style={[
+                  modalStyles.textInput,
+                  {
+                    borderColor: theme.inputBorderColor,
+                    color: theme.textColor,
+                    backgroundColor: theme.backgroundColor
+                  }
+                ]}
+              />
+
+              <View style={modalStyles.checkboxContainer}>
+                <Text style={[modalStyles.checkboxLabel, { color: theme.textColor }]}>
+                  Public Team
+                </Text>
+                <TouchableOpacity onPress={() => setIsPublic(!isPublic)}>
+                  {isPublic ? (
+                    <MaterialIcons name="check-box" size={24} color={theme.primaryColor} />
+                  ) : (
+                    <MaterialIcons
+                      name="check-box-outline-blank"
+                      size={24}
+                      color={theme.tertiaryTextColor}
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              <View style={modalStyles.infoBox}>
+                <Feather name="info" size={16} color={theme.primaryColor} style={modalStyles.infoIcon} />
+                <Text style={[modalStyles.infoText, { color: theme.secondaryTextColor }]}>
+                  {isPublic
+                    ? "Public teams can be found and joined by anyone."
+                    : "Private teams require an invitation to join."}
+                </Text>
+              </View>
+            </ScrollView>
+
+            <View style={[modalStyles.modalFooter, { borderTopColor: theme.borderColor }]}>
+              <TouchableOpacity
+                style={modalStyles.cancelButton}
+                onPress={onClose}
+              >
+                <Text style={[modalStyles.cancelButtonText, { color: theme.secondaryTextColor }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  modalStyles.confirmButton,
+                  {
+                    backgroundColor: theme.buttonBackground,
+                    opacity: teamName.trim() ? 1 : 0.6
+                  }
+                ]}
+                onPress={handleSubmit}
+                disabled={!teamName.trim()}
+              >
+                <Text style={modalStyles.confirmButtonText}>Create Team</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
 };
 
-const MyCustomLoader = () => {
+// Empty state component with better UI
+const EmptyTeamsState = () => {
+  const { isDarkMode } = useThemeStore();
+  const theme = isDarkMode ? darkTheme : lightTheme;
+
   return (
-    <ContentLoader
-      speed={1}
-      width={300}
-      height={80}
-      backgroundColor="#f3f3f3"
-      foregroundColor="#ecebeb"
-    >
-      <Rect x="0" y="0" rx="5" ry="5" width="300" height="80" />
-    </ContentLoader>
+    <View style={[styles.emptyContainer, { backgroundColor: theme.cardBackgroundColor }]}>
+      <Feather name="users" size={60} color={theme.tertiaryTextColor} style={styles.emptyIcon} />
+      <Text style={[styles.emptyTitle, { color: theme.textColor }]}>
+        No Teams Yet
+      </Text>
+      <Text style={[styles.emptyText, { color: theme.secondaryTextColor }]}>
+        Create a team to collaborate with others or join an existing team.
+      </Text>
+      <Text style={[styles.emptyInstructions, { color: theme.tertiaryTextColor }]}>
+        Tap the + button above to create your first team
+      </Text>
+    </View>
+  );
+};
+
+// Loading skeleton
+const MyCustomLoader = () => {
+  const { isDarkMode } = useThemeStore();
+  const theme = isDarkMode ? darkTheme : lightTheme;
+
+  return (
+    <View style={styles.loaderContainer}>
+      {[...Array(3)].map((_, index) => (
+        <ContentLoader
+          key={index}
+          speed={1.5}
+          width="100%"
+          height={90}
+          backgroundColor={isDarkMode ? "#2a2f3a" : "#f3f3f3"}
+          foregroundColor={isDarkMode ? "#3d4451" : "#ecebeb"}
+          style={styles.loader}
+        >
+          <Rect x="0" y="0" rx="8" ry="8" width="100%" height="90" />
+        </ContentLoader>
+      ))}
+    </View>
   );
 };
 
 export default function TeamsScreen() {
   const { teams, fetchTeams, addTeam, deleteTeam } = useTeamStore();
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [teamToDelete, setTeamToDelete] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { isDarkMode } = useThemeStore();
+  const theme = isDarkMode ? darkTheme : lightTheme;
   const auth = getAuth();
   const user = auth.currentUser;
+
   useEffect(() => {
-    fetchTeams();
+    const loadTeams = async () => {
+      setLoading(true);
+      await fetchTeams();
+      setLoading(false);
+    };
+
+    loadTeams();
   }, []);
 
   const handleAddTeam = async (teamData) => {
@@ -175,8 +333,8 @@ export default function TeamsScreen() {
         id: uuidv4(),
         name: teamData.name,
         desc: teamData.desc,
-        ownerId: user.uid, // Replace with actual user ID
-        members: [user.uid], // Replace with actual user ID
+        ownerId: user.uid,
+        members: [user.uid],
         createdAt: Date.now(),
         updatedAt: Date.now(),
         avatar: teamData.avatar || "",
@@ -194,9 +352,22 @@ export default function TeamsScreen() {
     }
   };
 
+  const confirmDeleteTeam = (team) => {
+    setTeamToDelete(team);
+    setDeleteModalVisible(true);
+  };
+
+  const handleDeleteTeam = async () => {
+    if (teamToDelete) {
+      await deleteTeam(teamToDelete.id);
+      setDeleteModalVisible(false);
+      setTeamToDelete(null);
+    }
+  };
+
   const renderTeamItem = ({ item }) => (
     <TouchableOpacity
-      style={styles.teamItem}
+      style={[styles.teamItem, { backgroundColor: theme.cardBackgroundColor }]}
       onPress={() => router.push(`/(users)/(tabs)/(teams)/${item.id}`)}
     >
       <Image
@@ -206,53 +377,83 @@ export default function TeamsScreen() {
         style={styles.teamAvatar}
       />
       <View style={styles.teamContent}>
-        <Text style={styles.teamName}>{item.name}</Text>
-        <Text style={styles.teamDesc}>
+        <Text style={[styles.teamName, { color: theme.textColor }]}>{item.name}</Text>
+        <Text style={[styles.teamDesc, { color: theme.secondaryTextColor }]}>
           {item.desc.substring(0, 50)}
           {item.desc.length > 50 ? "..." : ""}
         </Text>
-        <Text style={styles.membersCount}>{item.members.length} members</Text>
+        <Text style={[styles.membersCount, { color: theme.tertiaryTextColor }]}>
+          {item.members.length} members
+        </Text>
         <View style={styles.tagsContainer}>
           {item.tags.slice(0, 3).map((tag, index) => (
-            <Text key={index} style={styles.tag}>
+            <Text
+              key={index}
+              style={[
+                styles.tag,
+                {
+                  backgroundColor: theme.tagBackground,
+                  color: theme.tagText
+                }
+              ]}
+            >
               {tag}
             </Text>
           ))}
         </View>
       </View>
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => deleteTeam(item.id)}
-      >
-        <Feather name="trash-2" size={20} color="red" />
-      </TouchableOpacity>
+      {item.ownerId === user?.uid && (
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => confirmDeleteTeam(item)}
+        >
+          <Feather name="trash-2" size={20} color={theme.dangerColor} />
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Teams</Text>
+        <Text style={[styles.headerTitle, { color: theme.textColor }]}>Teams</Text>
         <TouchableOpacity
           onPress={() => setIsAddModalVisible(true)}
-          style={styles.addButton}
+          style={[styles.addButton, { backgroundColor: theme.buttonBackground }]}
         >
           <Feather name="plus" size={24} color="white" />
         </TouchableOpacity>
       </View>
 
-      <FlashList
-        data={teams}
-        renderItem={renderTeamItem}
-        keyExtractor={(item) => item.id}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<MyCustomLoader />}
-      />
+      {loading ? (
+        <MyCustomLoader />
+      ) : (
+        <FlashList
+          data={teams}
+          renderItem={renderTeamItem}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          estimatedItemSize={84}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          ListEmptyComponent={<EmptyTeamsState />}
+        />
+      )}
 
+      {/* Create Team Modal */}
       <CreateTeamModal
         visible={isAddModalVisible}
         onClose={() => setIsAddModalVisible(false)}
         onSubmit={handleAddTeam}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <CustomModal
+        visible={deleteModalVisible}
+        modalType="deleteConfirm"
+        title="Delete Team"
+        message={`Are you sure you want to delete "${teamToDelete?.name}"? This action cannot be undone and all team data will be permanently lost.`}
+        onClose={() => setDeleteModalVisible(false)}
+        onConfirm={handleDeleteTeam}
       />
     </View>
   );
@@ -261,7 +462,6 @@ export default function TeamsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9fafb",
     padding: 16,
   },
   header: {
@@ -275,22 +475,25 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   addButton: {
-    backgroundColor: "#3b82f6",
     padding: 8,
     borderRadius: 20,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   teamItem: {
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    backgroundColor: "white",
     borderRadius: 8,
-    marginBottom: 8,
+    marginBottom: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   teamAvatar: {
     width: 48,
@@ -304,105 +507,89 @@ const styles = StyleSheet.create({
   teamName: {
     fontSize: 18,
     fontWeight: "bold",
+    marginBottom: 4,
   },
   teamDesc: {
     fontSize: 14,
-    color: "#4b5563",
+    marginBottom: 4,
   },
   membersCount: {
     fontSize: 12,
-    color: "#9ca3af",
+    marginBottom: 4,
   },
   tagsContainer: {
     flexDirection: "row",
-    marginTop: 4,
+    flexWrap: "wrap",
   },
   tag: {
     marginRight: 8,
     fontSize: 12,
-    backgroundColor: "#f3f4f6",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 20,
+    overflow: 'hidden',
+    marginTop: 4,
   },
   deleteButton: {
     padding: 8,
+    marginLeft: 8,
   },
   emptyContainer: {
     alignItems: "center",
     justifyContent: "center",
     padding: 40,
+    margin: 16,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  emptyIcon: {
+    marginBottom: 20,
+    opacity: 0.6,
+  },
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 8,
   },
   emptyText: {
-    color: "#6b7280",
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 20,
   },
-  modalContent: {
-    marginTop: 16,
+  emptyInstructions: {
+    fontSize: 14,
+    textAlign: "center",
+    fontStyle: "italic",
   },
-  avatarPicker: {
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#e5e7eb",
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  avatarImage: {
-    width: "100%",
-    height: "100%",
-  },
-  avatarPickerText: {
-    color: "#3b82f6",
-    marginTop: 8,
-  },
-  inputLabel: {
-    color: "#374151",
-    marginBottom: 4,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 6,
+  loaderContainer: {
     padding: 8,
+  },
+  loader: {
     marginBottom: 12,
-  },
-  textAreaInput: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 6,
-    padding: 8,
-    marginBottom: 12,
-    height: 80,
-  },
-  checkboxContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  checkboxLabel: {
-    color: "#374151",
-    marginRight: 8,
-  },
+  }
 });
 
 const modalStyles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
+    justifyContent: "flex-end",
     alignItems: "center",
   },
   modalContainer: {
-    width: "90%",
-    backgroundColor: "white",
-    borderRadius: 10,
+    width: "100%",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     padding: 20,
-    maxHeight: "80%",
+    maxHeight: "90%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 10,
   },
   modalHeader: {
     flexDirection: "row",
@@ -420,12 +607,15 @@ const modalStyles = StyleSheet.create({
   modalFooter: {
     flexDirection: "row",
     justifyContent: "flex-end",
+    paddingTop: 16,
+    borderTopWidth: 1,
+    marginTop: 10,
   },
   confirmButton: {
-    backgroundColor: "#3b82f6",
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingVertical: 12,
+    borderRadius: 8,
+    elevation: 2,
   },
   confirmButtonText: {
     color: "white",
@@ -433,21 +623,22 @@ const modalStyles = StyleSheet.create({
   },
   cancelButton: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 8,
+    paddingVertical: 12,
+    marginRight: 12,
   },
   cancelButtonText: {
-    color: "#6b7280",
+    fontWeight: "500",
   },
   avatarPicker: {
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#e5e7eb",
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "transparent",
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -457,35 +648,50 @@ const modalStyles = StyleSheet.create({
     height: "100%",
   },
   avatarPickerText: {
-    color: "#3b82f6",
     marginTop: 8,
+    fontWeight: "500",
   },
   inputLabel: {
-    color: "#374151",
-    marginBottom: 4,
+    marginBottom: 8,
+    fontWeight: "500",
   },
   textInput: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 6,
-    padding: 8,
-    marginBottom: 12,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    fontSize: 16,
   },
   textAreaInput: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 6,
-    padding: 8,
-    marginBottom: 12,
-    height: 80,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    height: 100,
+    textAlignVertical: "top",
+    fontSize: 16,
   },
   checkboxContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 16,
   },
   checkboxLabel: {
-    color: "#374151",
+    marginRight: 8,
+    fontWeight: "500",
+  },
+  infoBox: {
+    flexDirection: "row",
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  infoIcon: {
     marginRight: 8,
   },
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+  }
 });

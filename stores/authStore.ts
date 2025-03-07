@@ -53,7 +53,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
       }
       // Store token using MMKV
       storage.set("idToken", idToken);
-
       // Create a Google credential with the token
       const googleCredential = getAuth.GoogleAuthProvider.credential(idToken);
       // console.log(googleCredential);
@@ -80,11 +79,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
   logout: async () => {
     try {
+      await GoogleSignin.revokeAccess();
       await signOut(auth);
       await GoogleSignin.signOut();
-      await GoogleSignin.revokeAccess();
     } catch (error) {
-      // console.error(error);
+      console.log("ncc", error);
     }
   },
   changeAvatar: async (image: string) => {

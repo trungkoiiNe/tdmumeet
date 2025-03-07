@@ -9,7 +9,7 @@ export default function TeamsLayout() {
         name="[id]"
         options={{
           headerShown: false,
-          presentation: "modal",
+          presentation: "card",
         }}
       />
       <Stack.Screen
