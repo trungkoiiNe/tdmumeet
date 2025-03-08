@@ -17,10 +17,10 @@ import { MMKV } from "react-native-mmkv";
 const db = getFirestore();
 
 GoogleSignin.configure({
-  webClientId:
-    "999189881408-ib9b35keqg7ngbssb5afmq5mb2on5bt8.apps.googleusercontent.com",
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_API,
 });
 const auth = getAuth();
+auth.languageCode = "vi";
 
 // Create a MMKV storage instance
 const storage = new MMKV();

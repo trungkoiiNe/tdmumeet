@@ -1,7 +1,7 @@
 import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { getAuth } from "@react-native-firebase/auth";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import ContentLoader, { Circle, Rect } from "react-content-loader/native";
 import {
   Alert,
@@ -18,7 +18,53 @@ import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 import { useAuthStore } from "../../../../stores/authStore";
 import { useTeamStore } from "../../../../stores/teamStore";
-import pickupImage from "../../../../utils/avatar"; // Import the avatar utility function
+import pickupImage from "../../../../utils/avatar";
+import { useThemeStore } from "../../../../stores/themeStore";
+import { darkTheme, lightTheme } from "../../../../utils/themes";
+import { Animated, KeyboardAvoidingView, Platform } from "react-native";
+
+// Define interfaces for type safety
+interface Team {
+  id: string;
+  name: string;
+  desc: string;
+  avatar: string;
+  members: string[];
+  ownerId: string;
+  tags: string[];
+  isPublic: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+interface Channel {
+  id: string;
+  teamId: string;
+  name: string;
+  desc: string;
+  createdAt: number;
+  updatedAt: number;
+  createdBy: string;
+  isPrivate: boolean;
+  members: string[];
+}
+
+interface Member {
+  id: string;
+  displayName?: string;
+  email?: string;
+  photoURL?: string;
+}
+
+interface SimpleModalProps {
+  visible: boolean;
+  title: string;
+  onClose: () => void;
+  onConfirm: () => void;
+  confirmText?: string;
+  children: React.ReactNode;
+}
+
 // Create TeamSkeleton component for loading state
 const TeamSkeleton = () => (
   <ScrollView style={styles.container}>
@@ -132,8 +178,8 @@ const TeamSkeleton = () => (
   </ScrollView>
 );
 
-// Add new SimpleModal component
-const SimpleModal = ({
+// Extract SimpleModal component
+const SimpleModal: React.FC<SimpleModalProps> = ({
   visible,
   title,
   onClose,
@@ -148,11 +194,271 @@ const SimpleModal = ({
           <Text style={styles.modalTitle}>{title}</Text>
           {children}
           <View style={styles.modalButtons}>
-            <TouchableOpacity onPress={onClose} style={styles.modalButton}>
+            <TouchableOpacity onPress={onClose} style={styles.modalButtons}>
               <Text>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={onConfirm} style={styles.modalButton}>
+            <TouchableOpacity onPress={onConfirm} style={styles.modalButtons}>
               <Text>{confirmText || "Confirm"}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+// Extract TeamInfo component
+const TeamInfo: React.FC<{
+  team: Team;
+  isCurrentUserOwner: boolean;
+  isCurrentUserMember: boolean;
+  onJoin: () => void;
+  onLeave: () => void;
+}> = ({ team, isCurrentUserOwner, isCurrentUserMember, onJoin, onLeave }) => {
+  return (
+    <>
+      <View style={styles.teamInfoHeader}>
+        <Image
+          source={{ uri: team.avatar || "https://via.placeholder.com/100" }}
+          style={styles.teamAvatar}
+        />
+        <Text style={styles.teamName}>{team.name}</Text>
+        <View style={styles.publicStatusContainer}>
+          <Feather
+            name={team.isPublic ? "globe" : "lock"}
+            size={16}
+            color="gray"
+          />
+          <Text style={styles.publicStatusText}>
+            {team.isPublic ? "Public" : "Private"} Team
+          </Text>
+        </View>
+
+        {!isCurrentUserOwner && (
+          <TouchableOpacity
+            style={[
+              styles.membershipButton,
+              isCurrentUserMember ? styles.leaveButton : styles.joinButton,
+            ]}
+            onPress={isCurrentUserMember ? onLeave : onJoin}
+          >
+            <Feather
+              name={isCurrentUserMember ? "user-x" : "user-plus"}
+              size={16}
+              color={isCurrentUserMember ? "#DC2626" : "#2563EB"}
+            />
+            <Text
+              style={[
+                styles.membershipButtonText,
+                isCurrentUserMember
+                  ? styles.leaveButtonText
+                  : styles.joinButtonText,
+              ]}
+            >
+              {isCurrentUserMember ? "Leave Team" : "Join Team"}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <Text style={styles.teamDescription}>{team.desc}</Text>
+
+      <View style={styles.tagsContainer}>
+        {team.tags.map((tag, index) => (
+          <View key={index} style={styles.tag}>
+            <Text style={styles.tagText}>#{tag}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.infoSection}>
+        <Text style={styles.infoLabel}>Created</Text>
+        <Text>{new Date(team.createdAt).toLocaleDateString()}</Text>
+      </View>
+
+      <View style={styles.infoSection}>
+        <Text style={styles.infoLabel}>Last Updated</Text>
+        <Text>{new Date(team.updatedAt).toLocaleDateString()}</Text>
+      </View>
+    </>
+  );
+};
+
+// Extract MemberList component
+const MemberList: React.FC<{
+  members: Member[];
+  ownerId: string;
+  isCurrentUserOwner: boolean;
+  onKickMember?: (memberId: string) => void;
+}> = ({ members, ownerId, isCurrentUserOwner, onKickMember }) => {
+  return (
+    <>
+      <Text style={styles.sectionTitle}>
+        Team Members ({members.length})
+      </Text>
+
+      {members.map((member, index) => (
+        <View key={index} style={styles.memberItem}>
+          <Image
+            source={{
+              uri: member.photoURL || "https://via.placeholder.com/40",
+            }}
+            style={styles.memberAvatar}
+          />
+          <View style={styles.memberInfo}>
+            <Text style={styles.memberName}>
+              {member.displayName || "Unknown User"}
+            </Text>
+            <Text style={styles.memberEmail}>{member.email || ""}</Text>
+          </View>
+          {member.id === ownerId && (
+            <View style={styles.ownerBadge}>
+              <Text style={styles.ownerBadgeText}>Owner</Text>
+            </View>
+          )}
+          {isCurrentUserOwner && member.id !== ownerId && (
+            <TouchableOpacity
+              onPress={() => onKickMember && onKickMember(member.id)}
+              style={{ marginLeft: 8 }}
+            >
+              <Feather name="user-minus" size={16} color="red" />
+            </TouchableOpacity>
+          )}
+        </View>
+      ))}
+
+      {isCurrentUserOwner && (
+        <TouchableOpacity style={styles.inviteButton}>
+          <Feather name="user-plus" size={18} color="gray" />
+          <Text style={styles.inviteButtonText}>Invite Member</Text>
+        </TouchableOpacity>
+      )}
+    </>
+  );
+};
+
+// Extract ChannelList component
+const ChannelList: React.FC<{
+  channels: Channel[];
+  teamId: string;
+  isCurrentUserOwner: boolean;
+  currentUserId: string | null;
+  onDeleteChannel: (channelId: string) => void;
+  onCreateChannel: () => void;
+  unreadChannels: string[];
+}> = ({
+  channels,
+  teamId,
+  isCurrentUserOwner,
+  currentUserId,
+  onDeleteChannel,
+  onCreateChannel,
+  unreadChannels
+}) => {
+    return (
+      <>
+        <Text style={styles.sectionTitle}>Channels</Text>
+        {channels.map((channel) => {
+          const hasUnread = unreadChannels.includes(channel.id);
+
+          return (
+            <View
+              key={channel.id}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 10,
+              }}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.channelItem,
+                  hasUnread && styles.channelItemWithUnread
+                ]}
+                onPress={() =>
+                  router.push(
+                    `/(users)/(tabs)/(teams)/(channels)/${channel.id}?teamId=${teamId}`
+                  )
+                }
+              >
+                <View style={styles.channelIconContainer}>
+                  <Feather
+                    name={channel.isPrivate ? "lock" : "message-square"}
+                    size={16}
+                    color={hasUnread ? "#3b82f6" : "#6b7280"}
+                  />
+                  {hasUnread && (
+                    <View style={styles.channelUnreadDot} />
+                  )}
+                </View>
+
+                <View style={styles.channelTextContainer}>
+                  <Text
+                    style={[
+                      styles.channelNameText,
+                      hasUnread && styles.channelNameUnread
+                    ]}
+                  >
+                    {channel.name}
+                  </Text>
+                  <Text style={styles.channelDescText}>
+                    {channel.desc}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {(isCurrentUserOwner || channel.createdBy === currentUserId) && (
+                <TouchableOpacity
+                  style={styles.channelDeleteButton}
+                  onPress={() => onDeleteChannel(channel.id)}
+                >
+                  <Feather name="trash" size={16} color="red" />
+                </TouchableOpacity>
+              )}
+            </View>
+          )
+        })}
+        {isCurrentUserOwner && (
+          <TouchableOpacity
+            style={[styles.actionButton, { marginTop: 16 }]}
+            onPress={onCreateChannel}
+          >
+            <Feather name="plus" size={18} color="#2563eb" />
+            <Text style={[styles.editActionText, { marginLeft: 8 }]}>
+              Create Channel
+            </Text>
+          </TouchableOpacity>
+        )}
+      </>
+    );
+  };
+
+const TeamEditModal: React.FC<{
+  visible: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  confirmText?: string;
+  children: React.ReactNode;
+  theme: any;
+}> = ({ visible, onClose, onConfirm, confirmText, children, theme }) => {
+  return (
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.cardBackgroundColor }]}>
+          <View style={styles.modalHeader}>
+            <Text style={[styles.modalTitle, { color: theme.textColor }]}>Edit Team</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={24} color={theme.textColor} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.modalContent}>{children}</ScrollView>
+          <View style={styles.modalFooter}>
+            <TouchableOpacity onPress={onClose} style={styles.cancelButton}>
+              <Text style={{ color: theme.secondaryTextColor }}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onConfirm} style={[styles.confirmButton, { backgroundColor: theme.primaryColor }]}>
+              <Text style={{ color: "#fff" }}>{confirmText || "Save Changes"}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -169,76 +475,81 @@ export default function TeamDetailsScreen() {
     deleteTeam,
     joinTeam,
     leaveTeam,
-    fetchChannels, // added
-    addChannel, // added
-    deleteChannel, // added
-    channels, // added
-    setAvatarUrl
+    fetchChannels,
+    addChannel,
+    deleteChannel,
+    channels,
+    kickTeamMember,
+    fetchUnreadMessages,
+    getUnreadCountForChannel
   } = useTeamStore();
-  const [team, setTeam] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [isCurrentUserMember, setIsCurrentUserMember] = useState(false);
-  const [isCurrentUserOwner, setIsCurrentUserOwner] = useState(false);
+
+  const [team, setTeam] = useState<Team | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [isEditModalVisible, setIsEditModalVisible] = useState<boolean>(false);
+  const [isCurrentUserMember, setIsCurrentUserMember] = useState<boolean>(false);
+  const [isCurrentUserOwner, setIsCurrentUserOwner] = useState<boolean>(false);
+  const [unreadChannels, setUnreadChannels] = useState<string[]>([]);
+
   const auth = getAuth();
   const currentUser = auth.currentUser;
 
   // Edit form state
-  const [editName, setEditName] = useState("");
-  const [editDesc, setEditDesc] = useState("");
-  const [editAvatar, setEditAvatar] = useState("");
-  const [avatarChanged, setAvatarChanged] = useState(false); // Track if avatar was changed
-  const [editTags, setEditTags] = useState("");
-  const [editIsPublic, setEditIsPublic] = useState(true);
-  const { getUserByUid } = useAuthStore();
+  const [editName, setEditName] = useState<string>("");
+  const [editDesc, setEditDesc] = useState<string>("");
+  const [editAvatar, setEditAvatar] = useState<string>("");
+  const [avatarChanged, setAvatarChanged] = useState<boolean>(false);
+  const [editTags, setEditTags] = useState<string>("");
+  const [editIsPublic, setEditIsPublic] = useState<boolean>(true);
+
+  const { getUserByUid, changeAvatar } = useAuthStore();
+  const { isDarkMode } = useThemeStore();
+  const theme = isDarkMode ? darkTheme : lightTheme;
 
   // Add state to store member information
-  const [teamMembers, setTeamMembers] = useState([]);
+  const [teamMembers, setTeamMembers] = useState<Member[]>([]);
 
   // New states for channel creation modal
-  const [isChannelModalVisible, setIsChannelModalVisible] = useState(false);
-  const [newChannelName, setNewChannelName] = useState("");
-  const [newChannelDesc, setNewChannelDesc] = useState("");
+  const [isChannelModalVisible, setIsChannelModalVisible] = useState<boolean>(false);
+  const [newChannelName, setNewChannelName] = useState<string>("");
+  const [newChannelDesc, setNewChannelDesc] = useState<string>("");
 
-  useEffect(() => {
-    fetchTeamDetails();
-  }, [id]);
+  const fetchTeamDetails = useCallback(async () => {
+    try {
+      setLoading(true);
+      const teamId = typeof id === 'string' ? id : Array.isArray(id) ? id[0] : '';
+      const fetchedTeam = await getTeamById(teamId);
 
-  // New effect to fetch channels once team details are loaded
-  useEffect(() => {
-    if (team) {
-      fetchChannels(team.id);
-    }
-  }, [team]);
+      if (fetchedTeam) {
+        setTeam(fetchedTeam);
 
-  const fetchTeamDetails = async () => {
-    setLoading(true);
-    const fetchedTeam = await getTeamById(id.toString());
-    if (fetchedTeam) {
-      setTeam(fetchedTeam);
+        // Check if current user is a member or owner
+        if (currentUser) {
+          setIsCurrentUserMember(fetchedTeam.members.includes(currentUser.uid));
+          setIsCurrentUserOwner(fetchedTeam.ownerId === currentUser.uid);
+        }
 
-      // Check if current user is a member or owner
-      if (currentUser) {
-        setIsCurrentUserMember(fetchedTeam.members.includes(currentUser.uid));
-        setIsCurrentUserOwner(fetchedTeam.ownerId === currentUser.uid);
+        // Initialize edit form with current values
+        setEditName(fetchedTeam.name);
+        setEditDesc(fetchedTeam.desc);
+        setEditAvatar(fetchedTeam.avatar || '');
+        setAvatarChanged(false); // Reset avatar changed flag
+        setEditTags(fetchedTeam.tags.join(", "));
+        setEditIsPublic(fetchedTeam.isPublic);
+
+        // Fetch member details
+        await fetchMemberDetails(fetchedTeam.members);
       }
-
-      // Initialize edit form with current values
-      setEditName(fetchedTeam.name);
-      setEditDesc(fetchedTeam.desc);
-      setEditAvatar(fetchedTeam.avatar);
-      setAvatarChanged(false); // Reset avatar changed flag
-      setEditTags(fetchedTeam.tags.join(", "));
-      setEditIsPublic(fetchedTeam.isPublic);
-
-      // Fetch member details
-      fetchMemberDetails(fetchedTeam.members);
+    } catch (error) {
+      console.error("Error fetching team details:", error);
+      Alert.alert("Error", "Failed to load team details. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  };
+  }, [id, getTeamById, currentUser]);
 
   // Add function to fetch member details
-  const fetchMemberDetails = async (memberIds) => {
+  const fetchMemberDetails = useCallback(async (memberIds: string[]) => {
     try {
       const memberPromises = memberIds.map(async (memberId) => {
         const userData = await getUserByUid(memberId);
@@ -252,31 +563,37 @@ export default function TeamDetailsScreen() {
       setTeamMembers(memberData);
     } catch (error) {
       console.error("Error fetching member details:", error);
+      Alert.alert("Error", "Failed to load member information.");
     }
-  };
+  }, [getUserByUid]);
 
-  const handleEditTeam = async () => {
-    if (editName.trim() === "") return;
+  const handleEditTeam = useCallback(async () => {
+    try {
+      if (editName.trim() === "" || !team) return;
 
-    const updatedTeam = {
-      ...team,
-      name: editName,
-      desc: editDesc,
-      avatar: editAvatar, // Avatar will be updated if changed
-      tags: editTags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((tag) => tag !== ""),
-      isPublic: editIsPublic,
-      updatedAt: Date.now(),
-    };
+      const updatedTeam: Team = {
+        ...team,
+        name: editName,
+        desc: editDesc,
+        avatar: editAvatar || '', // Provide empty string as fallback
+        tags: editTags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag !== ""),
+        isPublic: editIsPublic,
+        updatedAt: Date.now(),
+      };
 
-    await updateTeam(updatedTeam);
-    setTeam(updatedTeam);
-    setIsEditModalVisible(false);
-  };
+      await updateTeam(updatedTeam);
+      setTeam(updatedTeam);
+      setIsEditModalVisible(false);
+    } catch (error) {
+      console.error("Error updating team:", error);
+      Alert.alert("Error", "Failed to update team information. Please try again.");
+    }
+  }, [team, editName, editDesc, editAvatar, editTags, editIsPublic, updateTeam]);
 
-  const confirmDelete = () => {
+  const confirmDelete = useCallback(() => {
     Alert.alert(
       "Delete Team",
       "Are you sure you want to delete this team? This action cannot be undone.",
@@ -286,22 +603,26 @@ export default function TeamDetailsScreen() {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            await deleteTeam(id.toString());
-            router.back();
+            try {
+              const teamId = typeof id === 'string' ? id : Array.isArray(id) ? id[0] : '';
+              await deleteTeam(teamId);
+              router.back();
+            } catch (error) {
+              console.error("Error deleting team:", error);
+              Alert.alert("Error", "Failed to delete team. Please try again.");
+            }
           },
         },
       ]
     );
-  };
+  }, [id, deleteTeam]);
 
-  const handlePickImage = async () => {
+  const handlePickImage = useCallback(async () => {
     try {
-      // Use the pickupImage utility function instead of raw ImagePicker
       const base64Image = await pickupImage();
-
       if (base64Image) {
-        // Convert to proper data URI format for displaying
         const imageUri = `data:image/jpeg;base64,${base64Image}`;
+        await changeAvatar(imageUri);
         setEditAvatar(imageUri);
         setAvatarChanged(true);
       }
@@ -309,17 +630,22 @@ export default function TeamDetailsScreen() {
       console.error("Error picking image:", error);
       Alert.alert("Error", "Failed to select image. Please try again.");
     }
-  };
+  }, [changeAvatar]);
 
-  const handleJoinTeam = async () => {
-    if (currentUser && team) {
-      await joinTeam(team.id, currentUser.uid);
-      // Refresh team details after joining
-      fetchTeamDetails();
+  const handleJoinTeam = useCallback(async () => {
+    try {
+      if (currentUser && team) {
+        await joinTeam(team.id, currentUser.uid);
+        // Refresh team details after joining
+        fetchTeamDetails();
+      }
+    } catch (error) {
+      console.error("Error joining team:", error);
+      Alert.alert("Error", "Failed to join team. Please try again.");
     }
-  };
+  }, [currentUser, team, joinTeam, fetchTeamDetails]);
 
-  const handleLeaveTeam = async () => {
+  const handleLeaveTeam = useCallback(() => {
     if (currentUser && team) {
       // Confirm before leaving team
       Alert.alert("Leave Team", "Are you sure you want to leave this team?", [
@@ -328,42 +654,128 @@ export default function TeamDetailsScreen() {
           text: "Leave",
           style: "destructive",
           onPress: async () => {
-            await leaveTeam(team.id, currentUser.uid);
-            // Refresh team details after leaving
-            fetchTeamDetails();
+            try {
+              await leaveTeam(team.id, currentUser.uid);
+              // Refresh team details after leaving
+              fetchTeamDetails();
+            } catch (error) {
+              console.error("Error leaving team:", error);
+              Alert.alert("Error", "Failed to leave team. Please try again.");
+            }
           },
         },
       ]);
     }
-  };
+  }, [currentUser, team, leaveTeam, fetchTeamDetails]);
 
-  const handleCreateChannel = async () => {
-    if (!newChannelName.trim() || !team || !currentUser) return;
-    const channelId = uuidv4();
-    const newChannel = {
-      id: channelId,
-      teamId: team.id,
-      name: newChannelName,
-      desc: newChannelDesc,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      createdBy: currentUser.uid,
-      isPrivate: false,
-      members: [],
-    };
-    await addChannel(newChannel);
-    fetchChannels(team.id);
-    // Reset and close modal
-    setNewChannelName("");
-    setNewChannelDesc("");
-    setIsChannelModalVisible(false);
-  };
+  const handleCreateChannel = useCallback(async () => {
+    try {
+      if (!newChannelName.trim() || !team || !currentUser) return;
+      const channelId = uuidv4();
+      const newChannel: Channel = {
+        id: channelId,
+        teamId: team.id,
+        name: newChannelName,
+        desc: newChannelDesc,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        createdBy: currentUser.uid,
+        isPrivate: false,
+        members: [],
+      };
+      await addChannel(newChannel);
+      fetchChannels(team.id);
+      // Reset and close modal
+      setNewChannelName("");
+      setNewChannelDesc("");
+      setIsChannelModalVisible(false);
+    } catch (error) {
+      console.error("Error creating channel:", error);
+      Alert.alert("Error", "Failed to create channel. Please try again.");
+    }
+  }, [newChannelName, newChannelDesc, team, currentUser, addChannel, fetchChannels]);
 
-  const handleDeleteChannel = async (channelId: string) => {
-    if (!team) return;
-    await deleteChannel(team.id, channelId);
-    fetchChannels(team.id);
-  };
+  const handleDeleteChannel = useCallback(async (channelId: string) => {
+    try {
+      if (!team) return;
+      await deleteChannel(team.id, channelId);
+      fetchChannels(team.id);
+    } catch (error) {
+      console.error("Error deleting channel:", error);
+      Alert.alert("Error", "Failed to delete channel. Please try again.");
+    }
+  }, [team, deleteChannel, fetchChannels]);
+
+  const handleKickMember = useCallback(async (memberId: string) => {
+    if (team) {
+      Alert.alert(
+        "Remove Member",
+        "Are you sure you want to remove this member?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Remove",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await kickTeamMember(team.id, memberId);
+                // Refresh team details after kicking
+                fetchTeamDetails();
+              } catch (error) {
+                console.error("Error kicking member:", error);
+              }
+            },
+          },
+        ]
+      );
+    }
+  }, [team, kickTeamMember, fetchTeamDetails]);
+
+  const checkUnreadMessages = useCallback(async () => {
+    if (!team || !currentUser) return;
+
+    try {
+      const unreadMessages = await fetchUnreadMessages(currentUser.uid);
+
+      // Filter messages by this team and get their channel IDs
+      const teamUnreadMessages = unreadMessages.filter(msg => msg.teamId === team.id);
+      const channelsWithUnread = Array.from(
+        new Set(teamUnreadMessages.map(msg => msg.channelId))
+      );
+
+      setUnreadChannels(channelsWithUnread);
+    } catch (error) {
+      console.error("Error checking unread channel messages:", error);
+    }
+  }, [team, currentUser, fetchUnreadMessages]);
+
+  useEffect(() => {
+    fetchTeamDetails();
+  }, [fetchTeamDetails]);
+
+  // New effect to fetch channels once team details are loaded
+  useEffect(() => {
+    if (team) {
+      try {
+        fetchChannels(team.id);
+      } catch (error) {
+        console.error("Error fetching channels:", error);
+        Alert.alert("Error", "Failed to load channels. Please try again.");
+      }
+    }
+  }, [team, fetchChannels]);
+
+  // Update effect to also check for unread messages
+  useEffect(() => {
+    if (team) {
+      checkUnreadMessages();
+
+      // Set up interval to periodically check for unread messages
+      const intervalId = setInterval(checkUnreadMessages, 15000); // every 15 seconds
+
+      return () => clearInterval(intervalId);
+    }
+  }, [team, checkUnreadMessages]);
 
   if (loading) {
     return <TeamSkeleton />;
@@ -384,117 +796,33 @@ export default function TeamDetailsScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header with back button */}
+    <ScrollView style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="black" />
+          <Ionicons name="arrow-back" size={24} color={theme.textColor} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Team Details</Text>
+        <Text style={[styles.headerTitle, { color: theme.textColor }]}>Team Details</Text>
       </View>
 
       {/* Team info section */}
       <View style={styles.sectionCard}>
-        <View style={styles.teamInfoHeader}>
-          <Image
-            source={{ uri: team.avatar || "https://via.placeholder.com/100" }}
-            style={styles.teamAvatar}
-          />
-          <Text style={styles.teamName}>{team.name}</Text>
-          <View style={styles.publicStatusContainer}>
-            <Feather
-              name={team.isPublic ? "globe" : "lock"}
-              size={16}
-              color="gray"
-            />
-            <Text style={styles.publicStatusText}>
-              {team.isPublic ? "Public" : "Private"} Team
-            </Text>
-          </View>
-
-          {/* Join/Leave Team Button */}
-          {currentUser && !isCurrentUserOwner && (
-            <TouchableOpacity
-              style={[
-                styles.membershipButton,
-                isCurrentUserMember ? styles.leaveButton : styles.joinButton,
-              ]}
-              onPress={isCurrentUserMember ? handleLeaveTeam : handleJoinTeam}
-            >
-              <Feather
-                name={isCurrentUserMember ? "user-x" : "user-plus"}
-                size={16}
-                color={isCurrentUserMember ? "#DC2626" : "#2563EB"}
-              />
-              <Text
-                style={[
-                  styles.membershipButtonText,
-                  isCurrentUserMember
-                    ? styles.leaveButtonText
-                    : styles.joinButtonText,
-                ]}
-              >
-                {isCurrentUserMember ? "Leave Team" : "Join Team"}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <Text style={styles.teamDescription}>{team.desc}</Text>
-
-        <View style={styles.tagsContainer}>
-          {team.tags.map((tag, index) => (
-            <View key={index} style={styles.tag}>
-              <Text style={styles.tagText}>#{tag}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.infoSection}>
-          <Text style={styles.infoLabel}>Created</Text>
-          <Text>{new Date(team.createdAt).toLocaleDateString()}</Text>
-        </View>
-
-        <View style={styles.infoSection}>
-          <Text style={styles.infoLabel}>Last Updated</Text>
-          <Text>{new Date(team.updatedAt).toLocaleDateString()}</Text>
-        </View>
+        <TeamInfo
+          team={team}
+          isCurrentUserOwner={isCurrentUserOwner}
+          isCurrentUserMember={isCurrentUserMember}
+          onJoin={handleJoinTeam}
+          onLeave={handleLeaveTeam}
+        />
       </View>
 
-      {/* Team members section - updated to show member info */}
+      {/* Team members section */}
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>
-          Team Members ({team.members.length})
-        </Text>
-
-        {teamMembers.map((member, index) => (
-          <View key={index} style={styles.memberItem}>
-            <Image
-              source={{
-                uri: member.photoURL || "https://via.placeholder.com/40",
-              }}
-              style={styles.memberAvatar}
-            />
-            <View style={styles.memberInfo}>
-              <Text style={styles.memberName}>
-                {member.displayName || "Unknown User"}
-              </Text>
-              <Text style={styles.memberEmail}>{member.email || ""}</Text>
-            </View>
-            {member.id === team.ownerId && (
-              <View style={styles.ownerBadge}>
-                <Text style={styles.ownerBadgeText}>Owner</Text>
-              </View>
-            )}
-          </View>
-        ))}
-
-        {isCurrentUserOwner && (
-          <TouchableOpacity style={styles.inviteButton}>
-            <Feather name="user-plus" size={18} color="gray" />
-            <Text style={styles.inviteButtonText}>Invite Member</Text>
-          </TouchableOpacity>
-        )}
+        <MemberList
+          members={teamMembers}
+          ownerId={team.ownerId}
+          isCurrentUserOwner={isCurrentUserOwner}
+          onKickMember={handleKickMember}
+        />
       </View>
 
       {/* Admin actions - only show if current user is owner */}
@@ -517,117 +845,76 @@ export default function TeamDetailsScreen() {
         </View>
       )}
 
-      {/* Edit Modal */}
-      <SimpleModal
+      {/* Channels Section */}
+      <View style={styles.sectionCard}>
+        <ChannelList
+          channels={channels}
+          teamId={team.id}
+          isCurrentUserOwner={isCurrentUserOwner}
+          currentUserId={currentUser?.uid || null}
+          onDeleteChannel={handleDeleteChannel}
+          onCreateChannel={() => setIsChannelModalVisible(true)}
+          unreadChannels={unreadChannels}
+        />
+      </View>
+
+      <TeamEditModal
         visible={isEditModalVisible}
-        title="Edit Team"
         onClose={() => setIsEditModalVisible(false)}
         onConfirm={handleEditTeam}
         confirmText="Save Changes"
+        theme={theme}
       >
+
         <View style={styles.modalContent}>
-          <TouchableOpacity
-            onPress={handlePickImage}
-            style={styles.avatarPicker}
-          >
-            <View style={styles.avatarContainer}>
+          <TouchableOpacity onPress={handlePickImage} style={styles.avatarPicker}>
+            <View style={[styles.avatarContainer, { borderWidth: 1, borderColor: theme.inputBorderColor }]}>
               {editAvatar ? (
-                <Image
-                  source={{ uri: editAvatar }}
-                  style={styles.avatarImage}
-                />
+                <Image source={{ uri: editAvatar }} style={styles.avatarImage} />
               ) : (
-                <Feather name="camera" size={24} color="gray" />
+                <Feather name="camera" size={24} color={theme.tertiaryTextColor} />
               )}
             </View>
-            <Text style={styles.avatarPickerText}>Change Avatar</Text>
+            <Text style={[styles.avatarPickerText, { color: theme.primaryColor }]}>Change Avatar</Text>
           </TouchableOpacity>
-
-          <Text style={styles.inputLabel}>Team Name</Text>
+          <Text style={[styles.inputLabel, { color: theme.textColor }]}>Team Name</Text>
           <TextInput
             value={editName}
             onChangeText={setEditName}
             placeholder="Enter team name"
-            style={styles.textInput}
+            placeholderTextColor={theme.tertiaryTextColor}
+            style={[styles.textInput, { borderColor: theme.inputBorderColor, color: theme.textColor }]}
           />
-
-          <Text style={styles.inputLabel}>Description</Text>
+          <Text style={[styles.inputLabel, { color: theme.textColor }]}>Description</Text>
           <TextInput
             value={editDesc}
             onChangeText={setEditDesc}
             placeholder="Enter team description"
             multiline
             numberOfLines={3}
-            style={styles.textAreaInput}
+            placeholderTextColor={theme.tertiaryTextColor}
+            style={[styles.textAreaInput, { borderColor: theme.inputBorderColor, color: theme.textColor }]}
           />
-
-          <Text style={styles.inputLabel}>Tags (comma separated)</Text>
+          <Text style={[styles.inputLabel, { color: theme.textColor }]}>Tags (comma separated)</Text>
           <TextInput
             value={editTags}
             onChangeText={setEditTags}
             placeholder="design, development, marketing"
-            style={styles.textInput}
+            placeholderTextColor={theme.tertiaryTextColor}
+            style={[styles.textInput, { borderColor: theme.inputBorderColor, color: theme.textColor }]}
           />
-
           <View style={styles.checkboxContainer}>
-            <Text style={styles.checkboxLabel}>Public Team</Text>
+            <Text style={[styles.checkboxLabel, { color: theme.textColor }]}>Public Team</Text>
             <TouchableOpacity onPress={() => setEditIsPublic(!editIsPublic)}>
               {editIsPublic ? (
-                <MaterialIcons name="check-box" size={24} color="blue" />
+                <MaterialIcons name="check-box" size={24} color={theme.primaryColor} />
               ) : (
-                <MaterialIcons
-                  name="check-box-outline-blank"
-                  size={24}
-                  color="gray"
-                />
+                <MaterialIcons name="check-box-outline-blank" size={24} color={theme.tertiaryTextColor} />
               )}
             </TouchableOpacity>
           </View>
         </View>
-      </SimpleModal>
-
-      {/* New Channels Section with Create and Delete actions */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Channels</Text>
-        {channels.map((channel) => (
-          <View
-            key={channel.id}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <TouchableOpacity
-              style={{ flex: 1 }}
-              onPress={() =>
-                router.push(
-                  `/(users)/(tabs)/(teams)/(channels)/${channel.id}?teamId=${team.id}`
-                )
-              }
-            >
-              <Text style={styles.channelNameText}>{channel.name}</Text>
-              <Text style={styles.channelDescText}>{channel.desc}</Text>
-            </TouchableOpacity>
-            {(isCurrentUserOwner || channel.createdBy === currentUser?.uid) && (
-              <TouchableOpacity onPress={() => handleDeleteChannel(channel.id)}>
-                <Feather name="trash" size={16} color="red" />
-              </TouchableOpacity>
-            )}
-          </View>
-        ))}
-        {isCurrentUserOwner && (
-          <TouchableOpacity
-            style={[styles.actionButton, { marginTop: 16 }]}
-            onPress={() => setIsChannelModalVisible(true)}
-          >
-            <Feather name="plus" size={18} color="#2563eb" />
-            <Text style={[styles.editActionText, { marginLeft: 8 }]}>
-              Create Channel
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      </TeamEditModal>
 
       {/* Create Channel Modal */}
       <SimpleModal
@@ -901,12 +1188,57 @@ const styles = StyleSheet.create({
     color: "#DC2626", // Red text for leave
   },
   channelItem: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
+    paddingHorizontal: 10,
+    borderRadius: 8,
   },
-  channelNameText: { fontSize: 16, fontWeight: "500" },
-  channelDescText: { fontSize: 14, color: "#6b7280" },
+  channelItemWithUnread: {
+    backgroundColor: "rgba(59, 130, 246, 0.08)",
+  },
+  channelIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+    position: "relative",
+  },
+  channelUnreadDot: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#3b82f6",
+    borderWidth: 1.5,
+    borderColor: "white",
+  },
+  channelTextContainer: {
+    flex: 1,
+  },
+  channelNameText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#374151"
+  },
+  channelNameUnread: {
+    fontWeight: "700",
+    color: "#1f2937"
+  },
+  channelDescText: {
+    fontSize: 14,
+    color: "#6b7280"
+  },
+  channelDeleteButton: {
+    padding: 8,
+    marginLeft: 4,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -914,25 +1246,66 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalContainer: {
-    backgroundColor: "white",
-    borderRadius: 8,
+    width: "85%",
+    borderRadius: 12,
     padding: 16,
-    width: "80%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
-  modalButtons: {
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  // modalContent: {
+  //   maxHeight: 300,
+  // },
+  modalFooter: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    marginTop: 12,
+    marginTop: 16,
   },
-  modalButton: {
-    marginLeft: 12,
-    padding: 8,
-    backgroundColor: "#eee",
-    borderRadius: 4,
+  cancelButton: {
+    padding: 10,
+    marginRight: 12,
   },
+  confirmButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 16,
+  },
+  // avatarPicker: {
+  //   alignItems: "center",
+  //   marginBottom: 16,
+  // },
+  // avatarContainer: {
+  //   width: 80,
+  //   height: 80,
+  //   borderRadius: 40,
+  //   overflow: "hidden",
+  //   alignItems: "center",
+  //   justifyContent: "center",
+  //   backgroundColor: "#e5e7eb",
+  // },
+  // avatarImage: {
+  //   width: "100%",
+  //   height: "100%",
+  // },
+  // avatarPickerText: {
+  //   marginTop: 8,
+  //   fontWeight: "500",
+  // },
 });

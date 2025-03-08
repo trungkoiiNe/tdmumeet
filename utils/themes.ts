@@ -37,6 +37,8 @@ export const lightTheme = {
   buttonText: "#fff",
   cancelButtonBackground: "#f1f5f9",
   cancelButtonText: "#64748b",
+  shadowColor: "#000000",
+  accentColor: "#4C6EF5",
 };
 
 export const darkTheme = {
@@ -77,6 +79,8 @@ export const darkTheme = {
   buttonText: "#fff",
   cancelButtonBackground: "#374151",
   cancelButtonText: "#d1d5db",
+  shadowColor: "#000000",
+  accentColor: "#4C6EF5",
 };
 
 // Default export of both themes

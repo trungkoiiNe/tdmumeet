@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Tabs } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { View, StyleSheet } from "react-native";
@@ -7,22 +7,67 @@ import { darkTheme, lightTheme } from "../../../utils/themes";
 import { useTeamStore } from "../../../stores/teamStore";
 import { getAuth } from "@react-native-firebase/auth";
 
+// Tab configuration object
+const TAB_CONFIG = {
+  home: {
+    name: "index",
+    title: "Home",
+    iconName: "home",
+  },
+  settings: {
+    name: "settings",
+    title: "Settings",
+    iconName: "cog",
+  },
+  teams: {
+    name: "(teams)",
+    title: "Teams",
+    iconName: "users",
+  },
+  calendar: {
+    name: "calendar",
+    title: "Calendar",
+    iconName: "calendar",
+  }
+};
+
 export default function UserTabsLayout() {
   const { isDarkMode } = useThemeStore();
   const theme = isDarkMode ? darkTheme : lightTheme;
   const auth = getAuth();
   const currentUser = auth?.currentUser;
-  // Compute overall unread count across all team messages
-  const { messages, fetchUnreadMessages } = useTeamStore();
+  // Removed unused 'messages' property from destructuring
+  const { fetchUnreadMessages } = useTeamStore();
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+
   useEffect(() => {
     const getUnreadMessages = async () => {
-      setTotalUnreadCount((await fetchUnreadMessages(currentUser?.uid)).length);
-
+      try {
+        // Handle null/undefined user ID gracefully
+        if (!currentUser?.uid) {
+          setTotalUnreadCount(0);
+          return;
+        }
+        const unreadMessages = await fetchUnreadMessages(currentUser.uid);
+        setTotalUnreadCount(unreadMessages?.length || 0);
+      } catch (error) {
+        console.error("Error fetching unread messages:", error);
+        setTotalUnreadCount(0); // Fallback to 0 on error
+      }
     };
-    getUnreadMessages();
-  }, [])
 
+    getUnreadMessages();
+  }, [fetchUnreadMessages, currentUser?.uid]); // Added proper dependencies
+
+  // Memoized tab icon render functions
+  const renderTabIcon = useCallback((iconName: keyof typeof FontAwesome.glyphMap, color: string, showBadge = false) => {
+    return (
+      <View>
+        <FontAwesome size={28} name={iconName} color={color} />
+        {showBadge && totalUnreadCount > 0 && <View style={styles.redDot} />}
+      </View>
+    );
+  }, [totalUnreadCount]);
 
   return (
     <Tabs
@@ -37,42 +82,32 @@ export default function UserTabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name={TAB_CONFIG.home.name}
         options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="home" color={color} />
-          ),
+          title: TAB_CONFIG.home.title,
+          tabBarIcon: ({ color }: { color: string }) => renderTabIcon(TAB_CONFIG.home.iconName as keyof typeof FontAwesome.glyphMap, color),
+        }}
+      />
+
+      <Tabs.Screen
+        name={TAB_CONFIG.teams.name}
+        options={{
+          title: TAB_CONFIG.teams.title,
+          tabBarIcon: ({ color }) => renderTabIcon(TAB_CONFIG.teams.iconName as keyof typeof FontAwesome.glyphMap, color, true),
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name={TAB_CONFIG.calendar.name}
         options={{
-          title: "Settings",
-          tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="cog" color={color} />
-          ),
+          title: TAB_CONFIG.calendar.title,
+          tabBarIcon: ({ color }) => renderTabIcon(TAB_CONFIG.calendar.iconName as keyof typeof FontAwesome.glyphMap, color),
         }}
       />
       <Tabs.Screen
-        name="(teams)"
+        name={TAB_CONFIG.settings.name}
         options={{
-          title: "Teams",
-          tabBarIcon: ({ color }) => (
-            <View>
-              <FontAwesome size={28} name="users" color={color} />
-              {totalUnreadCount > 0 && <View style={styles.redDot} />}
-            </View>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="calendar"
-        options={{
-          title: "Calendar",
-          tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="calendar" color={color} />
-          ),
+          title: TAB_CONFIG.settings.title,
+          tabBarIcon: ({ color }) => renderTabIcon(TAB_CONFIG.settings.iconName as keyof typeof FontAwesome.glyphMap, color),
         }}
       />
     </Tabs>

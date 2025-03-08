@@ -1,6 +1,6 @@
 import { Feather, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Image,
   Modal,
@@ -264,7 +264,7 @@ const CreateTeamModal = ({ visible, onClose, onSubmit }) => {
 // Empty state component with better UI
 const EmptyTeamsState = () => {
   const { isDarkMode } = useThemeStore();
-  const theme = isDarkMode ? darkTheme : lightTheme;
+  const theme = useMemo(() => isDarkMode ? darkTheme : lightTheme, [isDarkMode]);
 
   return (
     <View style={[styles.emptyContainer, { backgroundColor: theme.cardBackgroundColor }]}>
@@ -285,7 +285,7 @@ const EmptyTeamsState = () => {
 // Loading skeleton
 const MyCustomLoader = () => {
   const { isDarkMode } = useThemeStore();
-  const theme = isDarkMode ? darkTheme : lightTheme;
+  const theme = useMemo(() => isDarkMode ? darkTheme : lightTheme, [isDarkMode]);
 
   return (
     <View style={styles.loaderContainer}>
@@ -307,13 +307,14 @@ const MyCustomLoader = () => {
 };
 
 export default function TeamsScreen() {
-  const { teams, fetchTeams, addTeam, deleteTeam } = useTeamStore();
+  const { teams, fetchTeams, addTeam, deleteTeam, fetchUnreadMessages } = useTeamStore();
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [teamToDelete, setTeamToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [unreadTeams, setUnreadTeams] = useState<string[]>([]);
   const { isDarkMode } = useThemeStore();
-  const theme = isDarkMode ? darkTheme : lightTheme;
+  const theme = useMemo(() => isDarkMode ? darkTheme : lightTheme, [isDarkMode]);
   const auth = getAuth();
   const user = auth.currentUser;
 
@@ -327,7 +328,29 @@ export default function TeamsScreen() {
     loadTeams();
   }, []);
 
-  const handleAddTeam = async (teamData) => {
+  // Check for unread messages and update unreadTeams state
+  useEffect(() => {
+    const checkUnreadMessages = async () => {
+      if (!user) return;
+
+      try {
+        const unreadMessages = await fetchUnreadMessages(user.uid);
+
+        // Extract unique team IDs that have unread messages
+        const teamsWithUnread = Array.from(
+          new Set(unreadMessages.map(msg => msg.teamId))
+        );
+        setUnreadTeams(teamsWithUnread);
+      } catch (error) {
+        console.error("Error checking unread messages:", error);
+      }
+    };
+    checkUnreadMessages();
+    const intervalId = setInterval(checkUnreadMessages, 30000); // every 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, [user, fetchUnreadMessages]);
+  const handleAddTeam = useCallback(async (teamData) => {
     try {
       const newTeam = {
         id: uuidv4(),
@@ -350,68 +373,94 @@ export default function TeamsScreen() {
     } catch (error) {
       console.error("Error adding team:", error);
     }
-  };
+  }, [user, addTeam]);
 
-  const confirmDeleteTeam = (team) => {
+  const confirmDeleteTeam = useCallback((team) => {
     setTeamToDelete(team);
     setDeleteModalVisible(true);
-  };
+  }, []);
 
-  const handleDeleteTeam = async () => {
+  const handleDeleteTeam = useCallback(async () => {
     if (teamToDelete) {
       await deleteTeam(teamToDelete.id);
       setDeleteModalVisible(false);
       setTeamToDelete(null);
     }
-  };
+  }, [teamToDelete, deleteTeam]);
 
-  const renderTeamItem = ({ item }) => (
-    <TouchableOpacity
-      style={[styles.teamItem, { backgroundColor: theme.cardBackgroundColor }]}
-      onPress={() => router.push(`/(users)/(tabs)/(teams)/${item.id}`)}
-    >
-      <Image
-        source={{
-          uri: item.avatar || "https://via.placeholder.com/100",
-        }}
-        style={styles.teamAvatar}
-      />
-      <View style={styles.teamContent}>
-        <Text style={[styles.teamName, { color: theme.textColor }]}>{item.name}</Text>
-        <Text style={[styles.teamDesc, { color: theme.secondaryTextColor }]}>
-          {item.desc.substring(0, 50)}
-          {item.desc.length > 50 ? "..." : ""}
-        </Text>
-        <Text style={[styles.membersCount, { color: theme.tertiaryTextColor }]}>
-          {item.members.length} members
-        </Text>
-        <View style={styles.tagsContainer}>
-          {item.tags.slice(0, 3).map((tag, index) => (
-            <Text
-              key={index}
-              style={[
-                styles.tag,
-                {
-                  backgroundColor: theme.tagBackground,
-                  color: theme.tagText
-                }
-              ]}
-            >
-              {tag}
-            </Text>
-          ))}
+  const renderTeamItem = useCallback(({ item }) => {
+    // Check if this team has unread messages
+    const hasUnread = unreadTeams.includes(item.id);
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.teamItem,
+          { backgroundColor: theme.cardBackgroundColor },
+          hasUnread && styles.teamItemWithUnread
+        ]}
+        onPress={() => router.push(`/(users)/(tabs)/(teams)/${item.id}`)}
+      >
+        <View style={styles.teamAvatarContainer}>
+          <Image
+            source={{
+              uri: item.avatar || "https://via.placeholder.com/100",
+            }}
+            style={styles.teamAvatar}
+          />
+          {hasUnread && (
+            <View style={[
+              styles.unreadIndicator,
+              { backgroundColor: theme.primaryColor }
+            ]} />
+          )}
         </View>
-      </View>
-      {item.ownerId === user?.uid && (
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => confirmDeleteTeam(item)}
-        >
-          <Feather name="trash-2" size={20} color={theme.dangerColor} />
-        </TouchableOpacity>
-      )}
-    </TouchableOpacity>
-  );
+
+        <View style={styles.teamContent}>
+          <Text
+            style={[
+              styles.teamName,
+              { color: theme.textColor },
+              hasUnread && styles.teamNameUnread
+            ]}
+          >
+            {item.name}
+          </Text>
+          <Text style={[styles.teamDesc, { color: theme.secondaryTextColor }]}>
+            {item.desc.substring(0, 50)}
+            {item.desc.length > 50 ? "..." : ""}
+          </Text>
+          <Text style={[styles.membersCount, { color: theme.tertiaryTextColor }]}>
+            {item.members.length} members
+          </Text>
+          <View style={styles.tagsContainer}>
+            {item.tags.slice(0, 3).map((tag, index) => (
+              <Text
+                key={index}
+                style={[
+                  styles.tag,
+                  {
+                    backgroundColor: theme.tagBackground,
+                    color: theme.tagText
+                  }
+                ]}
+              >
+                {tag}
+              </Text>
+            ))}
+          </View>
+        </View>
+        {item.ownerId === user?.uid && (
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => confirmDeleteTeam(item)}
+          >
+            <Feather name="trash-2" size={20} color={theme.dangerColor} />
+          </TouchableOpacity>
+        )}
+      </TouchableOpacity>
+    );
+  }, [theme, user?.uid, confirmDeleteTeam, unreadTeams]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
@@ -495,11 +544,31 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
+  teamItemWithUnread: {
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    borderLeftWidth: 3,
+    borderLeftColor: '#3b82f6',
+  },
+  teamAvatarContainer: {
+    position: 'relative',
+    marginRight: 16,
+  },
   teamAvatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    marginRight: 16,
+  },
+  unreadIndicator: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: 'white',
   },
   teamContent: {
     flex: 1,
@@ -508,6 +577,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 4,
+  },
+  teamNameUnread: {
+    fontWeight: "800",
   },
   teamDesc: {
     fontSize: 14,
