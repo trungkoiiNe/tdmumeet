@@ -28,7 +28,17 @@ const TAB_CONFIG = {
     name: "calendar",
     title: "Calendar",
     iconName: "calendar",
-  }
+  },
+  calling: {
+    name: "(calling)",
+    title: "Calling",
+    iconName: "phone",
+  },
+  calling2: {
+    name: "(calling2)",
+    title: "Calling2",
+    iconName: "phone",
+  },
 };
 
 export default function UserTabsLayout() {
@@ -60,14 +70,21 @@ export default function UserTabsLayout() {
   }, [fetchUnreadMessages, currentUser?.uid]); // Added proper dependencies
 
   // Memoized tab icon render functions
-  const renderTabIcon = useCallback((iconName: keyof typeof FontAwesome.glyphMap, color: string, showBadge = false) => {
-    return (
-      <View>
-        <FontAwesome size={28} name={iconName} color={color} />
-        {showBadge && totalUnreadCount > 0 && <View style={styles.redDot} />}
-      </View>
-    );
-  }, [totalUnreadCount]);
+  const renderTabIcon = useCallback(
+    (
+      iconName: keyof typeof FontAwesome.glyphMap,
+      color: string,
+      showBadge = false
+    ) => {
+      return (
+        <View>
+          <FontAwesome size={28} name={iconName} color={color} />
+          {showBadge && totalUnreadCount > 0 && <View style={styles.redDot} />}
+        </View>
+      );
+    },
+    [totalUnreadCount]
+  );
 
   return (
     <Tabs
@@ -85,7 +102,11 @@ export default function UserTabsLayout() {
         name={TAB_CONFIG.home.name}
         options={{
           title: TAB_CONFIG.home.title,
-          tabBarIcon: ({ color }: { color: string }) => renderTabIcon(TAB_CONFIG.home.iconName as keyof typeof FontAwesome.glyphMap, color),
+          tabBarIcon: ({ color }: { color: string }) =>
+            renderTabIcon(
+              TAB_CONFIG.home.iconName as keyof typeof FontAwesome.glyphMap,
+              color
+            ),
         }}
       />
 
@@ -93,21 +114,56 @@ export default function UserTabsLayout() {
         name={TAB_CONFIG.teams.name}
         options={{
           title: TAB_CONFIG.teams.title,
-          tabBarIcon: ({ color }) => renderTabIcon(TAB_CONFIG.teams.iconName as keyof typeof FontAwesome.glyphMap, color, true),
+          tabBarIcon: ({ color }) =>
+            renderTabIcon(
+              TAB_CONFIG.teams.iconName as keyof typeof FontAwesome.glyphMap,
+              color,
+              true
+            ),
         }}
       />
       <Tabs.Screen
         name={TAB_CONFIG.calendar.name}
         options={{
           title: TAB_CONFIG.calendar.title,
-          tabBarIcon: ({ color }) => renderTabIcon(TAB_CONFIG.calendar.iconName as keyof typeof FontAwesome.glyphMap, color),
+          tabBarIcon: ({ color }) =>
+            renderTabIcon(
+              TAB_CONFIG.calendar.iconName as keyof typeof FontAwesome.glyphMap,
+              color
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name={TAB_CONFIG.calling.name}
+        options={{
+          title: TAB_CONFIG.calling.title,
+          tabBarIcon: ({ color }) =>
+            renderTabIcon(
+              TAB_CONFIG.calling.iconName as keyof typeof FontAwesome.glyphMap,
+              color
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name={TAB_CONFIG.calling2.name}
+        options={{
+          title: TAB_CONFIG.calling2.title,
+          tabBarIcon: ({ color }) =>
+            renderTabIcon(
+              TAB_CONFIG.calling2.iconName as keyof typeof FontAwesome.glyphMap,
+              color
+            ),
         }}
       />
       <Tabs.Screen
         name={TAB_CONFIG.settings.name}
         options={{
           title: TAB_CONFIG.settings.title,
-          tabBarIcon: ({ color }) => renderTabIcon(TAB_CONFIG.settings.iconName as keyof typeof FontAwesome.glyphMap, color),
+          tabBarIcon: ({ color }) =>
+            renderTabIcon(
+              TAB_CONFIG.settings.iconName as keyof typeof FontAwesome.glyphMap,
+              color
+            ),
         }}
       />
     </Tabs>

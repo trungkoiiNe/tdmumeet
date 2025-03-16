@@ -44,7 +44,6 @@ const HeroSkeleton = ({ width }) => (
 // Content list item skeleton component
 const ContentListItemSkeleton = ({ width, index }) => (
     <ContentLoader
-        key={index}
         speed={SKELETON_CONFIG.speed}
         width={width}
         height={80}

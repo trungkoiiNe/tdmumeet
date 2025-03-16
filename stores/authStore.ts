@@ -1,5 +1,6 @@
 import { toast } from "@baronha/ting";
 import getAuth, {
+  firebase,
   FirebaseAuthTypes,
   onAuthStateChanged,
   signInWithCredential,
@@ -14,6 +15,7 @@ import {
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { create } from "zustand";
 import { MMKV } from "react-native-mmkv";
+
 const db = getFirestore();
 
 GoogleSignin.configure({

@@ -1,32 +1,30 @@
+import { toast } from "@baronha/ting";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { getAuth } from "@react-native-firebase/auth";
+import { FlashList } from "@shopify/flash-list";
+import * as FileSystem from "expo-file-system";
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from "expo-router";
 import { nanoid } from "nanoid";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import ContentLoader, { Rect } from "react-content-loader/native";
 import {
   Alert,
-  FlatList,
+  Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   useWindowDimensions,
-  View,
-  ScrollView,
-  Image,
-  Modal
+  View
 } from "react-native";
 import ContextMenu from "react-native-context-menu-view";
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTeamStore } from "../../../../../stores/teamStore";
-import MeetingsList from "../../../../../components/MeetingsList";
-import { FlashList } from "@shopify/flash-list";
 import pickupImage from "../../../../../utils/avatar"; // added import for image picking
-import * as FileSystem from "expo-file-system";
-import { toast } from "@baronha/ting";
 
 // Define interfaces for our data models
 interface Message {
@@ -457,6 +455,7 @@ export default function ChannelDetailsScreen() {
       <FlashList
         ref={flatListRef}
         data={messages}
+        estimatedItemSize={99}
         keyExtractor={(item) => item.id}
         renderItem={renderMessageItem}
         contentContainerStyle={styles.messagesList}

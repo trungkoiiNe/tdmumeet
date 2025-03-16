@@ -25,17 +25,17 @@ export default function RootLayout() {
       const inAuth = segments[0] === "(auth)";
       const user = await getUser();
       //no user and not in auth
-      if ((user == null) && !inAuth) {
+      if (user == null && !inAuth) {
         console.log("no user and not in auth");
         router.replace("/(auth)");
       }
       //have user and in auth
-      else if ((user != null) && inAuth) {
+      else if (user != null && inAuth) {
         router.replace("/(users)");
       }
-
-    }
+    };
     authCheck();
+
     setIsLoading(false);
   }, [getUser, segments, router]);
 
