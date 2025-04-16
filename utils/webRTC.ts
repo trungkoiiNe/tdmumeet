@@ -6,15 +6,36 @@ import {
 
 export const createPeerConnection = (iceServers = []) => {
   const defaultIceServers = [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
+    {
+      urls: "stun:stun.relay.metered.ca:80",
+    },
+    {
+      urls: "turn:asia.relay.metered.ca:80",
+      username: "c5eb4e2d4720c1663cee2ba6",
+      credential: "0/2/LU6ZFaIYxEGt",
+    },
+    {
+      urls: "turn:asia.relay.metered.ca:80?transport=tcp",
+      username: "c5eb4e2d4720c1663cee2ba6",
+      credential: "0/2/LU6ZFaIYxEGt",
+    },
+    {
+      urls: "turn:asia.relay.metered.ca:443",
+      username: "c5eb4e2d4720c1663cee2ba6",
+      credential: "0/2/LU6ZFaIYxEGt",
+    },
+    {
+      urls: "turns:asia.relay.metered.ca:443?transport=tcp",
+      username: "c5eb4e2d4720c1663cee2ba6",
+      credential: "0/2/LU6ZFaIYxEGt",
+    },
   ];
 
   const configuration = {
     iceServers: iceServers.length > 0 ? iceServers : defaultIceServers,
     iceCandidatePoolSize: 10,
     // Thêm các cấu hình tối ưu
-    sdpSemantics: "unified-plan",
+    // sdpSemantics: "unified-plan",
   };
 
   return new RTCPeerConnection(configuration);
@@ -92,8 +113,9 @@ export const createAnswer = async (peerConnection, offer) => {
 
 export const addIceCandidate = async (peerConnection, candidate) => {
   try {
-    if (peerConnection && peerConnection.remoteDescription) {
+    if (peerConnection && peerConnection.remoteDescription && candidate) {
       await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      console.log("Successfully added ICE Candidate");
     }
   } catch (error) {
     console.error("Error adding ice candidate:", error);

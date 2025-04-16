@@ -1,25 +1,38 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { Button, Image, StyleSheet, Text, View, Switch, Alert, ScrollView, TouchableOpacity } from "react-native";
+import {
+  Button,
+  Image,
+  StyleSheet,
+  Text,
+  View,
+  Switch,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native";
 import ContentLoader, { Rect } from "react-content-loader/native";
 import { useAuthStore } from "../../../stores/authStore";
 import { useThemeStore } from "../../../stores/themeStore";
 import pickupImage from "../../../utils/avatar";
 import { lightTheme, darkTheme } from "../../../utils/themes";
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
+import CustomModal from "../../../components/CustomModal";
+import { toast } from "@baronha/ting";
+
+// --- Helper Components (Keep as is or move to separate files later) ---
 
 interface InfoItemProps {
   label: string;
   value: string;
 }
-
 const InfoItem: React.FC<InfoItemProps> = ({ label, value }) => {
   const { isDarkMode } = useThemeStore();
   const theme = isDarkMode ? darkTheme : lightTheme;
-
   return (
     <View style={styles.row}>
       <Text style={[styles.cellKey, { color: theme.textColor }]}>{label}</Text>
-      <Text style={[styles.cellValue, { color: theme.secondaryTextColor }]}>{value}</Text>
+      <Text style={[styles.cellValue, { color: theme.secondaryTextColor }]}>
+        {value}
+      </Text>
     </View>
   );
 };
@@ -27,34 +40,43 @@ const InfoItem: React.FC<InfoItemProps> = ({ label, value }) => {
 const SectionHeader: React.FC<{ title: string }> = ({ title }) => {
   const { isDarkMode } = useThemeStore();
   const theme = isDarkMode ? darkTheme : lightTheme;
-
   return (
     <View style={styles.sectionHeader}>
-      <Text style={[styles.sectionHeaderText, { color: theme.textColor }]}>{title}</Text>
+      <Text style={[styles.sectionHeaderText, { color: theme.textColor }]}>
+        {title}
+      </Text>
     </View>
   );
 };
 
-const SettingsCard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const SettingsCard: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const { isDarkMode } = useThemeStore();
   const theme = isDarkMode ? darkTheme : lightTheme;
-
   return (
-    <View style={[styles.card, { backgroundColor: theme.tagBackground, shadowColor: theme.shadowColor }]}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.tagBackground,
+          shadowColor: theme.shadowColor,
+        },
+      ]}
+    >
       {children}
     </View>
   );
 };
 
 const SettingItem: React.FC<{
-  icon: string,
-  title: string,
-  action?: () => void,
-  rightElement?: React.ReactNode
+  icon: string;
+  title: string;
+  action?: () => void;
+  rightElement?: React.ReactNode;
 }> = ({ icon, title, action, rightElement }) => {
   const { isDarkMode } = useThemeStore();
   const theme = isDarkMode ? darkTheme : lightTheme;
-
   return (
     <TouchableOpacity
       style={styles.settingItem}
@@ -62,43 +84,37 @@ const SettingItem: React.FC<{
       disabled={!action}
     >
       <View style={styles.settingItemLeft}>
-        <Ionicons name={icon as any} size={22} color={theme.accentColor} style={styles.settingIcon} />
-        <Text style={[styles.settingText, { color: theme.textColor }]}>{title}</Text>
+        <Ionicons
+          name={icon as any}
+          size={22}
+          color={theme.accentColor}
+          style={styles.settingIcon}
+        />
+        <Text style={[styles.settingText, { color: theme.textColor }]}>
+          {title}
+        </Text>
       </View>
-      {rightElement || (action && (
-        <Ionicons name="chevron-forward" size={20} color={theme.secondaryTextColor} />
-      ))}
+      {rightElement ||
+        (action && (
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={theme.secondaryTextColor}
+          />
+        ))}
     </TouchableOpacity>
   );
 };
 
-export default function Settings() {
-  const { getUser, changeAvatar, getAvatar, logout } = useAuthStore();
-  const { isDarkMode, toggleTheme } = useThemeStore();
-  const theme = isDarkMode ? darkTheme : lightTheme;
+// --- Custom Hooks ---
 
-  const user = getUser();
+const useAvatar = (
+  user: { displayName?: string; email?: string; phoneNumber?: string } | null,
+  showErrorModal: () => void
+) => {
+  const { getAvatar, changeAvatar } = useAuthStore();
   const [avatar, setAvatar] = useState<string>("");
   const [isImageLoading, setIsImageLoading] = useState(true);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [dataUsage, setDataUsage] = useState(true);
-
-  // Memoized theme-dependent styles
-  const themedStyles = useMemo(() => ({
-    container: {
-      ...styles.container,
-      backgroundColor: theme.backgroundColor,
-    },
-    title: {
-      ...styles.title,
-      color: theme.textColor,
-    },
-  }), [theme]);
-
-  const loaderColors = useMemo(() => ({
-    backgroundColor: isDarkMode ? "#374151" : "#f3f3f3",
-    foregroundColor: isDarkMode ? "#4b5563" : "#ecebeb",
-  }), [isDarkMode]);
 
   useEffect(() => {
     const loadAvatar = async () => {
@@ -108,18 +124,19 @@ export default function Settings() {
           const avatarUrl = await getAvatar();
           setAvatar(avatarUrl);
         } catch (error) {
-          Alert.alert("Error", "Failed to load avatar");
+          showErrorModal();
           console.error("Avatar loading error:", error);
+        } finally {
+          setIsImageLoading(false); // Ensure loading stops even on error
         }
+      } else {
+        setIsImageLoading(false); // No user, stop loading
       }
     };
-
     loadAvatar();
+  }, [user, getAvatar, showErrorModal]); // Added showErrorModal dependency
 
-    setIsImageLoading(false);
-  }, [user, getAvatar]);
-
-  const pick = useCallback(async () => {
+  const pickAndChangeAvatar = useCallback(async () => {
     try {
       const imageBase64 = await pickupImage();
       if (imageBase64) {
@@ -127,96 +144,160 @@ export default function Settings() {
         const imageUri = "data:image/jpeg;base64," + imageBase64;
         await changeAvatar(imageUri);
         setAvatar(imageUri);
-
         setIsImageLoading(false);
       }
-
     } catch (error) {
-      Alert.alert("Error", "Failed to update avatar");
+      showErrorModal();
       console.error("Avatar update error:", error);
+      setIsImageLoading(false); // Stop loading on error
     }
-  }, [changeAvatar]);
+  }, [changeAvatar, showErrorModal]); // Added showErrorModal dependency
 
-  const handleLogout = useCallback(() => {
-    Alert.alert(
-      "Log Out",
-      "Are you sure you want to log out?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Log Out",
-          style: "destructive",
-          onPress: () => {
-            try {
-              logout();
-            } catch (error) {
-              Alert.alert("Error", "Failed to logout");
-              console.error("Logout error:", error);
-            }
-          }
-        }
-      ]
+  return { avatar, isImageLoading, pickAndChangeAvatar };
+};
+
+const useSettingsModals = () => {
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showAvatarErrorModal, setShowAvatarErrorModal] = useState(false);
+  const [showAboutModal, setShowAboutModal] = useState(false);
+  // Removed Privacy and Support modals as they just show toasts now
+
+  const openLogoutModal = useCallback(() => setShowLogoutModal(true), []);
+  const closeLogoutModal = useCallback(() => setShowLogoutModal(false), []);
+  const openAvatarErrorModal = useCallback(
+    () => setShowAvatarErrorModal(true),
+    []
+  );
+  const closeAvatarErrorModal = useCallback(
+    () => setShowAvatarErrorModal(false),
+    []
+  );
+  const openAboutModal = useCallback(() => setShowAboutModal(true), []);
+  const closeAboutModal = useCallback(() => setShowAboutModal(false), []);
+
+  return {
+    showLogoutModal,
+    openLogoutModal,
+    closeLogoutModal,
+    showAvatarErrorModal,
+    openAvatarErrorModal,
+    closeAvatarErrorModal,
+    showAboutModal,
+    openAboutModal,
+    closeAboutModal,
+  };
+};
+
+// --- Extracted Components ---
+
+interface ProfileSectionProps {
+  user: {
+    displayName?: string;
+    email?: string;
+    phoneNumber?: string;
+    [key: string]: any; // For any other properties
+  };
+  theme: typeof lightTheme | typeof darkTheme;
+  loaderColors: { backgroundColor: string; foregroundColor: string };
+  onShowAvatarError: () => void;
+}
+
+const ProfileSection: React.FC<ProfileSectionProps> = React.memo(
+  ({ user, theme, loaderColors, onShowAvatarError }) => {
+    const { avatar, isImageLoading, pickAndChangeAvatar } = useAvatar(
+      user,
+      onShowAvatarError
     );
-  }, [logout]);
 
-  if (!user) return null;
+    return (
+      <>
+        <SectionHeader title="Profile" />
+        <SettingsCard>
+          <View style={styles.profileSection}>
+            <View style={styles.avatarSection}>
+              {isImageLoading ? (
+                <ContentLoader
+                  width={80}
+                  height={80}
+                  viewBox="0 0 80 80"
+                  backgroundColor={loaderColors.backgroundColor}
+                  foregroundColor={loaderColors.foregroundColor}
+                >
+                  <Rect x="0" y="0" rx="40" ry="40" width="80" height="80" />
+                </ContentLoader>
+              ) : (
+                <Image style={styles.avatar} source={{ uri: avatar }} />
+              )}
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={pickAndChangeAvatar}
+              >
+                <Ionicons name="camera" size={18} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.userInfo}>
+              <Text style={[styles.userName, { color: theme.textColor }]}>
+                {user.displayName || "User"}
+              </Text>
+              <Text
+                style={[styles.userEmail, { color: theme.secondaryTextColor }]}
+              >
+                {user.email || ""}
+              </Text>
+            </View>
+          </View>
+          <InfoItem label="Phone" value={user.phoneNumber || "Not provided"} />
+        </SettingsCard>
+      </>
+    );
+  }
+);
+
+interface AppearanceSectionProps {
+  theme: typeof lightTheme | typeof darkTheme;
+  isDarkMode: boolean;
+  toggleTheme: () => void;
+}
+
+const AppearanceSection: React.FC<AppearanceSectionProps> = React.memo(
+  ({ theme, isDarkMode, toggleTheme }) => {
+    return (
+      <>
+        <SectionHeader title="Appearance" />
+        <SettingsCard>
+          <SettingItem
+            icon="moon-outline"
+            title="Dark Mode"
+            rightElement={
+              <Switch
+                value={isDarkMode}
+                onValueChange={toggleTheme}
+                trackColor={{
+                  false: "#767577",
+                  true: theme.accentColor + "80",
+                }}
+                thumbColor={isDarkMode ? theme.accentColor : "#f4f3f4"}
+              />
+            }
+          />
+        </SettingsCard>
+      </>
+    );
+  }
+);
+
+interface RecommendedSettingsSectionProps {
+  theme: typeof lightTheme | typeof darkTheme;
+}
+
+const RecommendedSettingsSection: React.FC<
+  RecommendedSettingsSectionProps
+> = React.memo(({ theme }) => {
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [dataUsage, setDataUsage] = useState(true);
 
   return (
-    <ScrollView style={themedStyles.container} contentContainerStyle={styles.contentContainer}>
-      <Text style={themedStyles.title}>Settings</Text>
-
-      {/* Profile Section */}
-      <SectionHeader title="Profile" />
-      <SettingsCard>
-        <View style={styles.profileSection}>
-          <View style={styles.avatarSection}>
-            {isImageLoading ? (
-              <ContentLoader
-                width={80}
-                height={80}
-                viewBox="0 0 80 80"
-                backgroundColor={loaderColors.backgroundColor}
-                foregroundColor={loaderColors.foregroundColor}
-              >
-                <Rect x="0" y="0" rx="40" ry="40" width="80" height="80" />
-              </ContentLoader>
-            ) :
-              <Image
-                style={styles.avatar}
-                source={{ uri: avatar }}
-              // onLoadEnd={() => setIsImageLoading(false)}
-              />}
-            <TouchableOpacity style={styles.editButton} onPress={pick}>
-              <Ionicons name="camera" size={18} color="#fff" />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.userInfo}>
-            <Text style={[styles.userName, { color: theme.textColor }]}>{user.displayName || 'User'}</Text>
-            <Text style={[styles.userEmail, { color: theme.secondaryTextColor }]}>{user.email || ''}</Text>
-          </View>
-        </View>
-
-        <InfoItem label="Phone" value={user.phoneNumber || 'Not provided'} />
-      </SettingsCard>
-
-      {/* Appearance Section */}
-      <SectionHeader title="Appearance" />
-      <SettingsCard>
-        <SettingItem
-          icon="moon-outline"
-          title="Dark Mode"
-          rightElement={
-            <Switch
-              value={isDarkMode}
-              onValueChange={toggleTheme}
-              trackColor={{ false: "#767577", true: theme.accentColor + "80" }}
-              thumbColor={isDarkMode ? theme.accentColor : "#f4f3f4"}
-            />
-          }
-        />
-      </SettingsCard>
-
-      {/* Recommended Settings */}
+    <>
       <SectionHeader title="Recommended Settings" />
       <SettingsCard>
         <SettingItem
@@ -245,25 +326,216 @@ export default function Settings() {
           }
         />
       </SettingsCard>
+    </>
+  );
+});
 
-      {/* Account Section */}
-      <SectionHeader title="Account" />
-      <SettingsCard>
-        <SettingItem icon="shield-checkmark-outline" title="Privacy" action={() => Alert.alert("Privacy", "Privacy settings coming soon")} />
-        <View style={styles.divider} />
-        <SettingItem icon="help-circle-outline" title="Help & Support" action={() => Alert.alert("Support", "Help & Support coming soon")} />
-        <View style={styles.divider} />
-        <SettingItem icon="information-circle-outline" title="About" action={() => Alert.alert("About", "App version: 1.0.0")} />
-      </SettingsCard>
+interface AccountSectionProps {
+  onShowAbout: () => void;
+}
 
-      <TouchableOpacity style={[styles.logoutButton, { backgroundColor: isDarkMode ? "#6B2737" : "#ffebee" }]} onPress={handleLogout}>
-        <Ionicons name="log-out-outline" size={20} color={isDarkMode ? "#ff8a80" : "#d32f2f"} />
-        <Text style={[styles.logoutText, { color: isDarkMode ? "#ff8a80" : "#d32f2f" }]}>Log Out</Text>
+const showComingSoonToast = () => {
+  toast({
+    title: "Coming Soon",
+    message: "This feature is coming soon! Please check back later.",
+  });
+};
+
+const AccountSection: React.FC<AccountSectionProps> = React.memo(
+  ({ onShowAbout }) => {
+    return (
+      <>
+        <SectionHeader title="Account" />
+        <SettingsCard>
+          <SettingItem
+            icon="shield-checkmark-outline"
+            title="Privacy"
+            action={showComingSoonToast}
+          />
+          <View style={styles.divider} />
+          <SettingItem
+            icon="help-circle-outline"
+            title="Help & Support"
+            action={showComingSoonToast}
+          />
+          <View style={styles.divider} />
+          <SettingItem
+            icon="information-circle-outline"
+            title="About"
+            action={onShowAbout}
+          />
+        </SettingsCard>
+      </>
+    );
+  }
+);
+
+interface LogoutButtonProps {
+  theme: typeof lightTheme | typeof darkTheme;
+  isDarkMode: boolean;
+  onPress: () => void;
+}
+
+const LogoutButton: React.FC<LogoutButtonProps> = React.memo(
+  ({ theme, isDarkMode, onPress }) => {
+    return (
+      <TouchableOpacity
+        style={[
+          styles.logoutButton,
+          { backgroundColor: isDarkMode ? "#6B2737" : "#ffebee" },
+        ]}
+        onPress={onPress}
+      >
+        <Ionicons
+          name="log-out-outline"
+          size={20}
+          color={isDarkMode ? "#ff8a80" : "#d32f2f"}
+        />
+        <Text
+          style={[
+            styles.logoutText,
+            { color: isDarkMode ? "#ff8a80" : "#d32f2f" },
+          ]}
+        >
+          Log Out
+        </Text>
       </TouchableOpacity>
-    </ScrollView>
+    );
+  }
+);
+
+interface SettingsModalsProps {
+  modalStates: ReturnType<typeof useSettingsModals>;
+  onConfirmLogout: () => void;
+}
+
+const SettingsModals: React.FC<SettingsModalsProps> = React.memo(
+  ({ modalStates, onConfirmLogout }) => {
+    return (
+      <>
+        {/* Logout Confirmation Modal */}
+        <CustomModal
+          visible={modalStates.showLogoutModal}
+          modalType="deleteConfirm"
+          title="Log Out"
+          message="Are you sure you want to log out?"
+          onClose={modalStates.closeLogoutModal}
+          onConfirm={onConfirmLogout}
+        />
+
+        {/* Avatar Error Modal */}
+        <CustomModal
+          visible={modalStates.showAvatarErrorModal}
+          modalType="alert"
+          title="Error"
+          message="Failed to load or update avatar."
+          onClose={modalStates.closeAvatarErrorModal}
+        />
+
+        {/* Information Modal */}
+        <CustomModal
+          visible={modalStates.showAboutModal}
+          modalType="information"
+          title="About"
+          message="App version: 1.0.0"
+          onClose={modalStates.closeAboutModal}
+        />
+      </>
+    );
+  }
+);
+
+// --- Main Settings Component ---
+
+export default function Settings() {
+  const { getUser, logout } = useAuthStore();
+  const { isDarkMode, toggleTheme } = useThemeStore();
+  const theme = isDarkMode ? darkTheme : lightTheme;
+  const user = getUser();
+
+  const modalActions = useSettingsModals();
+
+  // Memoized theme-dependent styles
+  const themedStyles = useMemo(
+    () => ({
+      container: {
+        ...styles.container,
+        backgroundColor: theme.backgroundColor,
+      },
+      title: {
+        ...styles.title,
+        color: theme.textColor,
+      },
+    }),
+    [theme]
+  );
+
+  const loaderColors = useMemo(
+    () => ({
+      backgroundColor: isDarkMode ? "#374151" : "#f3f3f3",
+      foregroundColor: isDarkMode ? "#4b5563" : "#ecebeb",
+    }),
+    [isDarkMode]
+  );
+
+  const handleLogout = useCallback(() => {
+    modalActions.openLogoutModal();
+  }, [modalActions]);
+
+  const confirmLogout = useCallback(() => {
+    try {
+      logout();
+      // No need to manually close modal here if logout causes navigation/unmount
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Optionally show an error modal here
+    }
+    modalActions.closeLogoutModal(); // Close modal regardless of success/error
+  }, [logout, modalActions]);
+
+  if (!user) return null; // Keep the guard clause
+
+  return (
+    <>
+      <ScrollView
+        style={themedStyles.container}
+        contentContainerStyle={styles.contentContainer}
+      >
+        <Text style={themedStyles.title}>Settings</Text>
+
+        <ProfileSection
+          user={user}
+          theme={theme}
+          loaderColors={loaderColors}
+          onShowAvatarError={modalActions.openAvatarErrorModal}
+        />
+
+        <AppearanceSection
+          theme={theme}
+          isDarkMode={isDarkMode}
+          toggleTheme={toggleTheme}
+        />
+
+        <RecommendedSettingsSection theme={theme} />
+
+        <AccountSection onShowAbout={modalActions.openAboutModal} />
+
+        <LogoutButton
+          theme={theme}
+          isDarkMode={isDarkMode}
+          onPress={handleLogout}
+        />
+      </ScrollView>
+
+      <SettingsModals
+        modalStates={modalActions}
+        onConfirmLogout={confirmLogout}
+      />
+    </>
   );
 }
 
+// --- Styles (Keep as is) ---
 const styles = StyleSheet.create({
   cellKey: {
     flex: 1,
@@ -277,7 +549,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 40, // Adjusted padding
   },
   title: {
     fontSize: 24,
@@ -312,14 +584,14 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: -5,
     bottom: -5,
-    backgroundColor: "#4C6EF5",
+    backgroundColor: "#4C6EF5", // Consider using theme color
     width: 30,
     height: 30,
     borderRadius: 15,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "white",
+    borderColor: "white", // Consider using theme background
   },
   userInfo: {
     flex: 1,
@@ -337,15 +609,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingVertical: 12,
     alignItems: "center",
+    borderBottomWidth: 1, // Added for clarity within InfoItem context if needed elsewhere
+    borderBottomColor: "#e0e0e0", // Use theme color potentially
   },
   divider: {
     height: 1,
-    backgroundColor: "#e0e0e0",
+    backgroundColor: "#e0e0e0", // Use theme color potentially
     opacity: 0.6,
+    marginVertical: 4, // Added margin for spacing
   },
   sectionHeader: {
     marginBottom: 8,
-    marginTop: 8,
+    marginTop: 16, // Added top margin for spacing between sections
   },
   sectionHeaderText: {
     fontSize: 16,
@@ -376,8 +651,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 16,
     borderRadius: 12,
-    marginTop: 8,
-    marginBottom: 16,
+    marginTop: 16, // Added margin
+    // marginBottom: 16, // Removed as contentContainerStyle handles bottom padding
   },
   logoutText: {
     fontWeight: "600",

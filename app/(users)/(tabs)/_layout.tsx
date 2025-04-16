@@ -39,6 +39,12 @@ const TAB_CONFIG = {
     title: "Calling2",
     iconName: "phone",
   },
+
+  calling3: {
+    name: "(calling3)",
+    title: "Calling3",
+    iconName: "phone",
+  },
 };
 
 export default function UserTabsLayout() {
@@ -133,7 +139,7 @@ export default function UserTabsLayout() {
             ),
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name={TAB_CONFIG.calling.name}
         options={{
           title: TAB_CONFIG.calling.title,
@@ -151,6 +157,17 @@ export default function UserTabsLayout() {
           tabBarIcon: ({ color }) =>
             renderTabIcon(
               TAB_CONFIG.calling2.iconName as keyof typeof FontAwesome.glyphMap,
+              color
+            ),
+        }}
+      /> */}
+      <Tabs.Screen
+        name={TAB_CONFIG.calling3.name}
+        options={{
+          title: TAB_CONFIG.calling3.title,
+          tabBarIcon: ({ color }) =>
+            renderTabIcon(
+              TAB_CONFIG.calling3.iconName as keyof typeof FontAwesome.glyphMap,
               color
             ),
         }}

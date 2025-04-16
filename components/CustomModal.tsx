@@ -11,7 +11,7 @@ import {
   Dimensions,
 } from "react-native";
 
-type ModalType = "alert" | "input" | "deleteConfirm" | "loading" | "custom";
+type ModalType = "alert" | "input" | "deleteConfirm" | "loading" | "custom" | "information";
 
 type CustomModalProps = {
   visible: boolean;
@@ -85,6 +85,14 @@ const CustomModal = ({
             )}
 
             {modalType === "custom" && children}
+
+            {modalType === "information" && message && (
+              <Text style={styles.message}>{message}</Text>
+            )}
+
+            {modalType === "information" && message && (
+              <Text style={styles.message}>{message}</Text>
+            )}
           </View>
 
           {/* Footer Buttons */}
@@ -116,21 +124,33 @@ const CustomModal = ({
                     <Text style={styles.confirmButtonText}>OK</Text>
                   </TouchableOpacity>
                 )}
-            </View>
-          )}
+              </View>
+            )}
+  
+            {modalType === "information" && (
+              <View style={styles.footer}>
+                <TouchableOpacity
+                  onPress={onClose}
+                  style={[styles.button, styles.confirmButton]}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.confirmButtonText}>OK</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
-    </Modal>
-  );
-};
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
-    padding: 16,
+      </Modal>
+    );
+  };
+  
+  const styles = StyleSheet.create({
+    overlay: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: "rgba(0, 0, 0, 0.4)",
+      padding: 16,
   },
   modalContainer: {
     width: MODAL_WIDTH,

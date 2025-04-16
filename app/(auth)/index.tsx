@@ -1,17 +1,9 @@
-import { View, Text, Button } from "react-native";
-import React from "react";
-import { useAuthStore } from "../../stores/authStore";
+import React from 'react';
+import OnboardingScreen from './OnboardingScreen'; // Import the new screen
 
-const login = () => {
-  const { login, logout, getUser } = useAuthStore();
-
-  return (
-    <>
-      <Button title="Login" onPress={login} />
-      <Button title="Logout" onPress={logout} />
-      <Button title="Get User" onPress={() => alert(getUser)} />
-    </>
-  );
+const AuthIndex = () => {
+  // Render the OnboardingScreen component
+  return <OnboardingScreen />;
 };
 
-export default login;
+export default AuthIndex;

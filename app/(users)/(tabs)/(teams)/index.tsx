@@ -107,7 +107,7 @@ const CreateTeamModal = ({ visible, onClose, onSubmit }) => {
           style={[
             { opacity: backdropOpacity },
             StyleSheet.absoluteFill,
-            { backgroundColor: 'black' }
+            { backgroundColor: "black" },
           ]}
         />
         <KeyboardAvoidingView
@@ -119,12 +119,14 @@ const CreateTeamModal = ({ visible, onClose, onSubmit }) => {
               modalStyles.modalContainer,
               {
                 backgroundColor: theme.cardBackgroundColor,
-                transform: [{ translateY }]
-              }
+                transform: [{ translateY }],
+              },
             ]}
           >
             <View style={modalStyles.modalHeader}>
-              <Text style={[modalStyles.modalTitle, { color: theme.textColor }]}>
+              <Text
+                style={[modalStyles.modalTitle, { color: theme.textColor }]}
+              >
                 Create New Team
               </Text>
               <TouchableOpacity onPress={onClose}>
@@ -137,22 +139,40 @@ const CreateTeamModal = ({ visible, onClose, onSubmit }) => {
                 onPress={handlePickImage}
                 style={modalStyles.avatarPicker}
               >
-                <View style={[modalStyles.avatarContainer, { borderColor: theme.borderColor }]}>
+                <View
+                  style={[
+                    modalStyles.avatarContainer,
+                    { borderColor: theme.borderColor },
+                  ]}
+                >
                   {teamAvatar ? (
                     <Image
                       source={{ uri: teamAvatar }}
                       style={modalStyles.avatarImage}
                     />
                   ) : (
-                    <Feather name="camera" size={24} color={theme.tertiaryTextColor} />
+                    <Feather
+                      name="camera"
+                      size={24}
+                      color={theme.tertiaryTextColor}
+                    />
                   )}
                 </View>
-                <Text style={[modalStyles.avatarPickerText, { color: theme.primaryColor }]}>
+                <Text
+                  style={[
+                    modalStyles.avatarPickerText,
+                    { color: theme.primaryColor },
+                  ]}
+                >
                   Choose Avatar
                 </Text>
               </TouchableOpacity>
 
-              <Text style={[modalStyles.inputLabel, { color: theme.textColor }]}>Team Name</Text>
+              <Text
+                style={[modalStyles.inputLabel, { color: theme.textColor }]}
+              >
+                Team Name
+              </Text>
               <TextInput
                 value={teamName}
                 onChangeText={setTeamName}
@@ -163,12 +183,16 @@ const CreateTeamModal = ({ visible, onClose, onSubmit }) => {
                   {
                     borderColor: theme.inputBorderColor,
                     color: theme.textColor,
-                    backgroundColor: theme.backgroundColor
-                  }
+                    backgroundColor: theme.backgroundColor,
+                  },
                 ]}
               />
 
-              <Text style={[modalStyles.inputLabel, { color: theme.textColor }]}>Description</Text>
+              <Text
+                style={[modalStyles.inputLabel, { color: theme.textColor }]}
+              >
+                Description
+              </Text>
               <TextInput
                 value={teamDesc}
                 onChangeText={setTeamDesc}
@@ -181,12 +205,14 @@ const CreateTeamModal = ({ visible, onClose, onSubmit }) => {
                   {
                     borderColor: theme.inputBorderColor,
                     color: theme.textColor,
-                    backgroundColor: theme.backgroundColor
-                  }
+                    backgroundColor: theme.backgroundColor,
+                  },
                 ]}
               />
 
-              <Text style={[modalStyles.inputLabel, { color: theme.textColor }]}>
+              <Text
+                style={[modalStyles.inputLabel, { color: theme.textColor }]}
+              >
                 Tags (comma separated)
               </Text>
               <TextInput
@@ -199,18 +225,27 @@ const CreateTeamModal = ({ visible, onClose, onSubmit }) => {
                   {
                     borderColor: theme.inputBorderColor,
                     color: theme.textColor,
-                    backgroundColor: theme.backgroundColor
-                  }
+                    backgroundColor: theme.backgroundColor,
+                  },
                 ]}
               />
 
               <View style={modalStyles.checkboxContainer}>
-                <Text style={[modalStyles.checkboxLabel, { color: theme.textColor }]}>
+                <Text
+                  style={[
+                    modalStyles.checkboxLabel,
+                    { color: theme.textColor },
+                  ]}
+                >
                   Public Team
                 </Text>
                 <TouchableOpacity onPress={() => setIsPublic(!isPublic)}>
                   {isPublic ? (
-                    <MaterialIcons name="check-box" size={24} color={theme.primaryColor} />
+                    <MaterialIcons
+                      name="check-box"
+                      size={24}
+                      color={theme.primaryColor}
+                    />
                   ) : (
                     <MaterialIcons
                       name="check-box-outline-blank"
@@ -222,8 +257,18 @@ const CreateTeamModal = ({ visible, onClose, onSubmit }) => {
               </View>
 
               <View style={modalStyles.infoBox}>
-                <Feather name="info" size={16} color={theme.primaryColor} style={modalStyles.infoIcon} />
-                <Text style={[modalStyles.infoText, { color: theme.secondaryTextColor }]}>
+                <Feather
+                  name="info"
+                  size={16}
+                  color={theme.primaryColor}
+                  style={modalStyles.infoIcon}
+                />
+                <Text
+                  style={[
+                    modalStyles.infoText,
+                    { color: theme.secondaryTextColor },
+                  ]}
+                >
                   {isPublic
                     ? "Public teams can be found and joined by anyone."
                     : "Private teams require an invitation to join."}
@@ -231,12 +276,22 @@ const CreateTeamModal = ({ visible, onClose, onSubmit }) => {
               </View>
             </ScrollView>
 
-            <View style={[modalStyles.modalFooter, { borderTopColor: theme.borderColor }]}>
+            <View
+              style={[
+                modalStyles.modalFooter,
+                { borderTopColor: theme.borderColor },
+              ]}
+            >
               <TouchableOpacity
                 style={modalStyles.cancelButton}
                 onPress={onClose}
               >
-                <Text style={[modalStyles.cancelButtonText, { color: theme.secondaryTextColor }]}>
+                <Text
+                  style={[
+                    modalStyles.cancelButtonText,
+                    { color: theme.secondaryTextColor },
+                  ]}
+                >
                   Cancel
                 </Text>
               </TouchableOpacity>
@@ -245,8 +300,8 @@ const CreateTeamModal = ({ visible, onClose, onSubmit }) => {
                   modalStyles.confirmButton,
                   {
                     backgroundColor: theme.buttonBackground,
-                    opacity: teamName.trim() ? 1 : 0.6
-                  }
+                    opacity: teamName.trim() ? 1 : 0.6,
+                  },
                 ]}
                 onPress={handleSubmit}
                 disabled={!teamName.trim()}
@@ -264,18 +319,33 @@ const CreateTeamModal = ({ visible, onClose, onSubmit }) => {
 // Empty state component with better UI
 const EmptyTeamsState = () => {
   const { isDarkMode } = useThemeStore();
-  const theme = useMemo(() => isDarkMode ? darkTheme : lightTheme, [isDarkMode]);
+  const theme = useMemo(
+    () => (isDarkMode ? darkTheme : lightTheme),
+    [isDarkMode]
+  );
 
   return (
-    <View style={[styles.emptyContainer, { backgroundColor: theme.cardBackgroundColor }]}>
-      <Feather name="users" size={60} color={theme.tertiaryTextColor} style={styles.emptyIcon} />
+    <View
+      style={[
+        styles.emptyContainer,
+        { backgroundColor: theme.cardBackgroundColor },
+      ]}
+    >
+      <Feather
+        name="users"
+        size={60}
+        color={theme.tertiaryTextColor}
+        style={styles.emptyIcon}
+      />
       <Text style={[styles.emptyTitle, { color: theme.textColor }]}>
         No Teams Yet
       </Text>
       <Text style={[styles.emptyText, { color: theme.secondaryTextColor }]}>
         Create a team to collaborate with others or join an existing team.
       </Text>
-      <Text style={[styles.emptyInstructions, { color: theme.tertiaryTextColor }]}>
+      <Text
+        style={[styles.emptyInstructions, { color: theme.tertiaryTextColor }]}
+      >
         Tap the + button above to create your first team
       </Text>
     </View>
@@ -285,7 +355,10 @@ const EmptyTeamsState = () => {
 // Loading skeleton
 const MyCustomLoader = () => {
   const { isDarkMode } = useThemeStore();
-  const theme = useMemo(() => isDarkMode ? darkTheme : lightTheme, [isDarkMode]);
+  const theme = useMemo(
+    () => (isDarkMode ? darkTheme : lightTheme),
+    [isDarkMode]
+  );
 
   return (
     <View style={styles.loaderContainer}>
@@ -307,14 +380,18 @@ const MyCustomLoader = () => {
 };
 
 export default function TeamsScreen() {
-  const { teams, fetchTeams, addTeam, deleteTeam, fetchUnreadMessages } = useTeamStore();
+  const { teams, fetchTeams, addTeam, deleteTeam, fetchUnreadMessages } =
+    useTeamStore();
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [teamToDelete, setTeamToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
   const [unreadTeams, setUnreadTeams] = useState<string[]>([]);
   const { isDarkMode } = useThemeStore();
-  const theme = useMemo(() => isDarkMode ? darkTheme : lightTheme, [isDarkMode]);
+  const theme = useMemo(
+    () => (isDarkMode ? darkTheme : lightTheme),
+    [isDarkMode]
+  );
   const auth = getAuth();
   const user = auth.currentUser;
 
@@ -338,7 +415,7 @@ export default function TeamsScreen() {
 
         // Extract unique team IDs that have unread messages
         const teamsWithUnread = Array.from(
-          new Set(unreadMessages.map(msg => msg.teamId))
+          new Set(unreadMessages.map((msg) => msg.teamId))
         );
         setUnreadTeams(teamsWithUnread);
       } catch (error) {
@@ -350,30 +427,33 @@ export default function TeamsScreen() {
 
     return () => clearInterval(intervalId);
   }, [user, fetchUnreadMessages]);
-  const handleAddTeam = useCallback(async (teamData) => {
-    try {
-      const newTeam = {
-        id: uuidv4(),
-        name: teamData.name,
-        desc: teamData.desc,
-        ownerId: user.uid,
-        members: [user.uid],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        avatar: teamData.avatar || "",
-        tags: teamData.tags
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter((tag) => tag !== ""),
-        isPublic: teamData.isPublic,
-      };
+  const handleAddTeam = useCallback(
+    async (teamData) => {
+      try {
+        const newTeam = {
+          id: uuidv4(),
+          name: teamData.name,
+          desc: teamData.desc,
+          ownerId: user.uid,
+          members: [user.uid],
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          avatar: teamData.avatar || "",
+          tags: teamData.tags
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter((tag) => tag !== ""),
+          isPublic: teamData.isPublic,
+        };
 
-      await addTeam(newTeam);
-      setIsAddModalVisible(false);
-    } catch (error) {
-      console.error("Error adding team:", error);
-    }
-  }, [user, addTeam]);
+        await addTeam(newTeam);
+        setIsAddModalVisible(false);
+      } catch (error) {
+        console.error("Error adding team:", error);
+      }
+    },
+    [user, addTeam]
+  );
 
   const confirmDeleteTeam = useCallback((team) => {
     setTeamToDelete(team);
@@ -388,87 +468,103 @@ export default function TeamsScreen() {
     }
   }, [teamToDelete, deleteTeam]);
 
-  const renderTeamItem = useCallback(({ item }) => {
-    // Check if this team has unread messages
-    const hasUnread = unreadTeams.includes(item.id);
+  const renderTeamItem = useCallback(
+    ({ item }) => {
+      // Check if this team has unread messages
+      const hasUnread = unreadTeams.includes(item.id);
 
-    return (
-      <TouchableOpacity
-        style={[
-          styles.teamItem,
-          { backgroundColor: theme.cardBackgroundColor },
-          hasUnread && styles.teamItemWithUnread
-        ]}
-        onPress={() => router.push(`/(users)/(tabs)/(teams)/${item.id}`)}
-      >
-        <View style={styles.teamAvatarContainer}>
-          <Image
-            source={{
-              uri: item.avatar || "https://via.placeholder.com/100",
-            }}
-            style={styles.teamAvatar}
-          />
-          {hasUnread && (
-            <View style={[
-              styles.unreadIndicator,
-              { backgroundColor: theme.primaryColor }
-            ]} />
-          )}
-        </View>
-
-        <View style={styles.teamContent}>
-          <Text
-            style={[
-              styles.teamName,
-              { color: theme.textColor },
-              hasUnread && styles.teamNameUnread
-            ]}
-          >
-            {item.name}
-          </Text>
-          <Text style={[styles.teamDesc, { color: theme.secondaryTextColor }]}>
-            {item.desc.substring(0, 50)}
-            {item.desc.length > 50 ? "..." : ""}
-          </Text>
-          <Text style={[styles.membersCount, { color: theme.tertiaryTextColor }]}>
-            {item.members.length} members
-          </Text>
-          <View style={styles.tagsContainer}>
-            {item.tags.slice(0, 3).map((tag, index) => (
-              <Text
-                key={index}
+      return (
+        <TouchableOpacity
+          style={[
+            styles.teamItem,
+            { backgroundColor: theme.cardBackgroundColor },
+            hasUnread && styles.teamItemWithUnread,
+          ]}
+          onPress={() => router.push(`/(users)/(tabs)/(teams)/${item.id}`)}
+        >
+          <View style={styles.teamAvatarContainer}>
+            <Image
+              source={{
+                uri: item.avatar || "https://via.placeholder.com/100",
+              }}
+              style={styles.teamAvatar}
+            />
+            {hasUnread && (
+              <View
                 style={[
-                  styles.tag,
-                  {
-                    backgroundColor: theme.tagBackground,
-                    color: theme.tagText
-                  }
+                  styles.unreadIndicator,
+                  { backgroundColor: theme.primaryColor },
                 ]}
-              >
-                {tag}
-              </Text>
-            ))}
+              />
+            )}
           </View>
-        </View>
-        {item.ownerId === user?.uid && (
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => confirmDeleteTeam(item)}
-          >
-            <Feather name="trash-2" size={20} color={theme.dangerColor} />
-          </TouchableOpacity>
-        )}
-      </TouchableOpacity>
-    );
-  }, [theme, user?.uid, confirmDeleteTeam, unreadTeams]);
+
+          <View style={styles.teamContent}>
+            <Text
+              style={[
+                styles.teamName,
+                { color: theme.textColor },
+                hasUnread && styles.teamNameUnread,
+              ]}
+            >
+              {item.name}
+            </Text>
+            <Text
+              style={[styles.teamDesc, { color: theme.secondaryTextColor }]}
+            >
+              {item.desc.substring(0, 50)}
+              {item.desc.length > 50 ? "..." : ""}
+            </Text>
+            <Text
+              style={[styles.membersCount, { color: theme.tertiaryTextColor }]}
+            >
+              {item.members.length} members
+            </Text>
+            <View style={styles.tagsContainer}>
+              {item.tags.slice(0, 3).map((tag, index) => (
+                <Text
+                  key={index}
+                  style={[
+                    styles.tag,
+                    {
+                      backgroundColor: theme.tagBackground,
+                      color: theme.tagText,
+                    },
+                  ]}
+                >
+                  {tag}
+                </Text>
+              ))}
+            </View>
+          </View>
+          {item.ownerId === user?.uid && (
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => confirmDeleteTeam(item)}
+            >
+              <Feather name="trash-2" size={20} color={theme.dangerColor} />
+            </TouchableOpacity>
+          )}
+        </TouchableOpacity>
+      );
+    },
+    [theme, user?.uid, confirmDeleteTeam, unreadTeams]
+  );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
+    <View
+      style={[styles.container, { backgroundColor: theme.backgroundColor }]}
+    >
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.textColor }]}>Teams</Text>
+        <Text style={[styles.headerTitle, { color: theme.textColor }]}>
+          Teams
+        </Text>
         <TouchableOpacity
           onPress={() => setIsAddModalVisible(true)}
-          style={[styles.addButton, { backgroundColor: theme.buttonBackground }]}
+          style={[
+            styles.addButton,
+            { backgroundColor: theme.buttonBackground },
+          ]}
         >
           <Feather name="plus" size={24} color="white" />
         </TouchableOpacity>
@@ -549,26 +645,26 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
     borderLeftWidth: 3,
-    borderLeftColor: '#3b82f6',
+    borderLeftColor: "#3b82f6",
   },
   teamAvatarContainer: {
-    position: 'relative',
+    position: "relative",
     marginRight: 16,
   },
   teamAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
   unreadIndicator: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     right: 0,
     width: 10,
     height: 10,
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: 'white',
+    borderColor: "white",
   },
   teamContent: {
     flex: 1,
@@ -582,7 +678,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   teamDesc: {
-    fontSize: 14,
+    fontSize: 16,
     marginBottom: 4,
   },
   membersCount: {
@@ -599,7 +695,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 20,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginTop: 4,
   },
   deleteButton: {
@@ -642,7 +738,7 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginBottom: 12,
-  }
+  },
 });
 
 const modalStyles = StyleSheet.create({
@@ -765,5 +861,5 @@ const modalStyles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 14,
-  }
+  },
 });

@@ -3,7 +3,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { getAuth } from "@react-native-firebase/auth";
 import { FlashList } from "@shopify/flash-list";
 import * as FileSystem from "expo-file-system";
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { nanoid } from "nanoid";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -20,10 +20,12 @@ import {
   TextInput,
   TouchableOpacity,
   useWindowDimensions,
-  View
+  View,
 } from "react-native";
 import ContextMenu from "react-native-context-menu-view";
 import { useTeamStore } from "../../../../../stores/teamStore";
+import { useThemeStore } from "../../../../../stores/themeStore";
+import { darkTheme, lightTheme } from "../../../../../utils/themes";
 import pickupImage from "../../../../../utils/avatar"; // added import for image picking
 
 // Define interfaces for our data models
@@ -84,7 +86,14 @@ const MessageSkeleton = () => {
         foregroundColor="#ecebeb"
         style={styles.skeletonLoader}
       >
-        <Rect x={width - bubbleWidth - 10} y="10" rx="16" ry="16" width={bubbleWidth} height="40" />
+        <Rect
+          x={width - bubbleWidth - 10}
+          y="10"
+          rx="16"
+          ry="16"
+          width={bubbleWidth}
+          height="40"
+        />
       </ContentLoader>
 
       {/* Left-aligned message skeleton */}
@@ -96,7 +105,14 @@ const MessageSkeleton = () => {
         foregroundColor="#ecebeb"
         style={styles.skeletonLoader}
       >
-        <Rect x="10" y="10" rx="16" ry="16" width={bubbleWidth - 40} height="60" />
+        <Rect
+          x="10"
+          y="10"
+          rx="16"
+          ry="16"
+          width={bubbleWidth - 40}
+          height="60"
+        />
       </ContentLoader>
 
       {/* Right-aligned message skeleton */}
@@ -108,7 +124,14 @@ const MessageSkeleton = () => {
         foregroundColor="#ecebeb"
         style={styles.skeletonLoader}
       >
-        <Rect x={width - bubbleWidth + 30} y="10" rx="16" ry="16" width={bubbleWidth - 50} height="35" />
+        <Rect
+          x={width - bubbleWidth + 30}
+          y="10"
+          rx="16"
+          ry="16"
+          width={bubbleWidth - 50}
+          height="35"
+        />
       </ContentLoader>
     </View>
   );
@@ -118,11 +141,11 @@ const MessageSkeleton = () => {
 const MessageItem = ({
   message,
   currentUserId,
-  onDelete
+  onDelete,
 }: {
-  message: Message,
-  currentUserId: string,
-  onDelete: (message: Message) => void
+  message: Message;
+  currentUserId: string;
+  onDelete: (message: Message) => void;
 }) => {
   const isOwnMessage = message.userId === currentUserId;
   const [modalVisible, setModalVisible] = useState(false);
@@ -135,7 +158,9 @@ const MessageItem = ({
     if (fileInfo.exists) {
       toast({ message: "Already image" });
     } else {
-      await FileSystem.writeAsStringAsync(fileUri, base64Data, { encoding: FileSystem.EncodingType.Base64 });
+      await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
       toast({ message: "Image downloaded" });
     }
   };
@@ -153,39 +178,74 @@ const MessageItem = ({
       <View style={styles.messageContent}>
         {message.file && message.file.startsWith("data:image/jpeg;base64,") ? (
           <>
-            <TouchableOpacity onPress={() => setModalVisible(true)}>
-              <Image source={{ uri: message.file }} style={{ width: 100, height: 100, borderRadius: 8 }} />
+            <TouchableOpacity
+              onPress={() => setModalVisible(true)}
+              accessibilityLabel="View image attachment"
+              accessibilityRole="button"
+            >
+              <Image
+                source={{ uri: message.file }}
+                style={styles.thumbnailImage} // Use dedicated style
+              />
             </TouchableOpacity>
-            <Modal visible={modalVisible} transparent onRequestClose={() => setModalVisible(false)}>
+            <Modal
+              visible={modalVisible}
+              transparent
+              onRequestClose={() => setModalVisible(false)}
+              animationType="fade"
+              accessible={true} // Make modal accessible
+              accessibilityLabel="Image viewer modal" // Label for the modal itself
+            >
               <View style={styles.modalContainer}>
-                <TouchableOpacity style={styles.modalCloseButton} onPress={() => setModalVisible(false)}>
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={() => setModalVisible(false)}
+                  accessibilityLabel="Close image viewer" // Accessibility for close button
+                  accessibilityRole="button"
+                >
                   <Ionicons name="close" size={30} color="#fff" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.modalDownloadButton} onPress={downloadImage}>
+                <TouchableOpacity
+                  style={styles.modalDownloadButton}
+                  onPress={downloadImage}
+                  accessibilityLabel="Download image" // Accessibility for download button
+                  accessibilityRole="button"
+                >
                   <Ionicons name="download" size={30} color="#fff" />
                 </TouchableOpacity>
                 <ScrollView
-                  contentContainerStyle={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+                  contentContainerStyle={styles.modalScrollViewContent} // Use dedicated style
                   minimumZoomScale={1}
                   maximumZoomScale={3}
                 >
-                  <Image source={{ uri: message.file }} style={{ width: "90%", height: "90%", resizeMode: "contain" }} />
+                  <Image
+                    source={{ uri: message.file }}
+                    style={styles.modalImage} // Use dedicated style
+                    accessibilityLabel="Full size image attachment" // Accessibility for image
+                    accessibilityHint="Zooms on pinch, closes with button top left"
+                  />
                 </ScrollView>
               </View>
             </Modal>
           </>
         ) : (
-          <Text style={[styles.messageText, !isOwnMessage && { color: '#333' }]}>
+          <Text
+            style={[styles.messageText, !isOwnMessage && { color: "#333" }]}
+          >
             {message.text}
           </Text>
         )}
-        <Text style={[
-          styles.messageTime,
-          { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)' }
-        ]}>
+        <Text
+          style={[
+            styles.messageTime,
+            {
+              color: isOwnMessage ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.5)",
+            },
+          ]}
+        >
           {new Date(message.createdAt).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit'
+            hour: "2-digit",
+            minute: "2-digit",
           })}
         </Text>
       </View>
@@ -198,12 +258,12 @@ const ChannelHeader = ({
   channel,
   onBack,
   onInfoPress,
-  menuActions
+  menuActions,
 }: {
-  channel: Channel,
-  onBack: () => void,
-  onInfoPress: () => void,
-  menuActions: MenuAction[]
+  channel: Channel;
+  onBack: () => void;
+  onInfoPress: () => void;
+  menuActions: MenuAction[];
 }) => {
   return (
     <View style={styles.header}>
@@ -213,18 +273,16 @@ const ChannelHeader = ({
       <Text style={styles.headerTitle}>{channel.name}</Text>
 
       <View style={styles.headerRight}>
-        <TouchableOpacity
-          onPress={onInfoPress}
-          style={styles.headerButton}
-        >
+        <TouchableOpacity onPress={onInfoPress} style={styles.headerButton}>
           <Ionicons name="information-circle-outline" size={24} color="black" />
         </TouchableOpacity>
 
         <ContextMenu
           actions={menuActions}
           onPress={(e) => {
-            const selectedAction = menuActions.find(action =>
-              action.title === e.nativeEvent.name);
+            const selectedAction = menuActions.find(
+              (action) => action.title === e.nativeEvent.name
+            );
             if (selectedAction) {
               selectedAction.onPress();
             }
@@ -232,7 +290,11 @@ const ChannelHeader = ({
           previewBackgroundColor="#f2f2f2"
         >
           <View style={styles.headerButton}>
-            <MaterialCommunityIcons name="dots-vertical" size={24} color="black" />
+            <MaterialCommunityIcons
+              name="dots-vertical"
+              size={24}
+              color="black"
+            />
           </View>
         </ContextMenu>
       </View>
@@ -258,7 +320,7 @@ export default function ChannelDetailsScreen() {
     addMessage,
     deleteMessage,
     messages,
-    loading
+    loading,
   } = useTeamStore();
 
   const [channel, setChannel] = useState<Channel | null>(null);
@@ -278,9 +340,9 @@ export default function ChannelDetailsScreen() {
       const fetched = await getChannelById(teamId, channelId);
       setChannel(fetched);
     } catch (err) {
-      console.error('Error fetching channel:', err);
-      setError('Failed to load channel details');
-      Alert.alert('Error', 'Failed to load channel details');
+      console.error("Error fetching channel:", err);
+      setError("Failed to load channel details");
+      Alert.alert("Error", "Failed to load channel details");
     } finally {
       setLoadingChannel(false);
     }
@@ -325,37 +387,39 @@ export default function ChannelDetailsScreen() {
       };
       setMessageText("");
       await addMessage(teamId, newMessage);
-
     } catch (err) {
-      console.error('Error sending message:', err);
-      Alert.alert('Error', 'Failed to send message');
+      console.error("Error sending message:", err);
+      Alert.alert("Error", "Failed to send message");
     }
   };
 
   // Delete message with error handling
-  const handleDeleteMessage = useCallback((message: Message) => {
-    if (!currentUser || message.userId !== currentUser.uid) return;
+  const handleDeleteMessage = useCallback(
+    (message: Message) => {
+      if (!currentUser || message.userId !== currentUser.uid) return;
 
-    Alert.alert(
-      "Delete Message",
-      "Are you sure you want to delete this message?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteMessage(teamId, message);
-            } catch (err) {
-              console.error('Error deleting message:', err);
-              Alert.alert('Error', 'Failed to delete message');
-            }
+      Alert.alert(
+        "Delete Message",
+        "Are you sure you want to delete this message?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await deleteMessage(teamId, message);
+              } catch (err) {
+                console.error("Error deleting message:", err);
+                Alert.alert("Error", "Failed to delete message");
+              }
+            },
           },
-        },
-      ]
-    );
-  }, [teamId, deleteMessage, currentUser]);
+        ]
+      );
+    },
+    [teamId, deleteMessage, currentUser]
+  );
 
   // Delete channel with error handling
   const handleDelete = useCallback(() => {
@@ -374,8 +438,8 @@ export default function ChannelDetailsScreen() {
               await deleteChannel(teamId, channelId);
               router.back();
             } catch (err) {
-              console.error('Error deleting channel:', err);
-              Alert.alert('Error', 'Failed to delete channel');
+              console.error("Error deleting channel:", err);
+              Alert.alert("Error", "Failed to delete channel");
             }
           },
         },
@@ -397,10 +461,18 @@ export default function ChannelDetailsScreen() {
         await fetchChannel();
       }
     } catch (err) {
-      console.error('Error joining/leaving channel:', err);
-      Alert.alert('Error', 'Failed to update channel membership');
+      console.error("Error joining/leaving channel:", err);
+      Alert.alert("Error", "Failed to update channel membership");
     }
-  }, [channel, currentUser, teamId, channelId, joinChannel, leaveChannel, fetchChannel]);
+  }, [
+    channel,
+    currentUser,
+    teamId,
+    channelId,
+    joinChannel,
+    leaveChannel,
+    fetchChannel,
+  ]);
 
   // Show channel options menu - memoized to prevent recreating on each render
   const getMenuActions = useCallback((): MenuAction[] => {
@@ -408,11 +480,9 @@ export default function ChannelDetailsScreen() {
       {
         title: "Channel Info",
         systemIcon: "info",
-        onPress: () => Alert.alert(
-          channel?.name || '',
-          channel?.desc || 'No description'
-        ),
-      }
+        onPress: () =>
+          Alert.alert(channel?.name || "", channel?.desc || "No description"),
+      },
     ];
 
     // Add delete option if user is the channel creator
@@ -430,21 +500,21 @@ export default function ChannelDetailsScreen() {
   // Channel header info handler
   const handleChannelInfoPress = useCallback(() => {
     if (channel) {
-      Alert.alert(
-        channel.name,
-        channel.desc || 'No description'
-      );
+      Alert.alert(channel.name, channel.desc || "No description");
     }
   }, [channel]);
 
   // Render messages with extracted component
-  const renderMessageItem = useCallback(({ item }: { item: Message }) => (
-    <MessageItem
-      message={item}
-      currentUserId={currentUser?.uid || ''}
-      onDelete={handleDeleteMessage}
-    />
-  ), [currentUser, handleDeleteMessage]);
+  const renderMessageItem = useCallback(
+    ({ item }: { item: Message }) => (
+      <MessageItem
+        message={item}
+        currentUserId={currentUser?.uid || ""}
+        onDelete={handleDeleteMessage}
+      />
+    ),
+    [currentUser, handleDeleteMessage]
+  );
 
   // Render messages or loading indicator
   const renderMessages = useCallback(() => {
@@ -459,7 +529,9 @@ export default function ChannelDetailsScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderMessageItem}
         contentContainerStyle={styles.messagesList}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+        onContentSizeChange={() =>
+          flatListRef.current?.scrollToEnd({ animated: false })
+        }
       />
     );
   }, [loadingChannel, loading, messages, renderMessageItem]);
@@ -494,10 +566,7 @@ export default function ChannelDetailsScreen() {
     return (
       <View style={styles.container}>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity
-          onPress={() => fetchChannel()}
-          style={styles.button}
-        >
+        <TouchableOpacity onPress={() => fetchChannel()} style={styles.button}>
           <Text style={styles.buttonText}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -506,24 +575,23 @@ export default function ChannelDetailsScreen() {
 
   if (!channel) {
     return (
-      <View style={styles.container}>
-        {/* Loading or not found state */}
-      </View>
+      <View style={styles.container}>{/* Loading or not found state */}</View>
     );
   }
 
   // Check if user can access this channel
-  const canAccessChannel = !channel.isPrivate ||
+  const canAccessChannel =
+    !channel.isPrivate ||
     (channel.isPrivate && channel.members?.includes(currentUser?.uid));
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
     >
       {/* Header with gradient background for a modern look */}
       <LinearGradient
-        colors={['#4c669f', '#3b5998']}
+        colors={["#4c669f", "#3b5998"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.header}
@@ -531,15 +599,26 @@ export default function ChannelDetailsScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: '#fff' }]}>{channel.name}</Text>
+        <Text style={[styles.headerTitle, { color: "#fff" }]}>
+          {channel.name}
+        </Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={handleChannelInfoPress} style={styles.headerButton}>
-            <Ionicons name="information-circle-outline" size={24} color="#fff" />
+          <TouchableOpacity
+            onPress={handleChannelInfoPress}
+            style={styles.headerButton}
+          >
+            <Ionicons
+              name="information-circle-outline"
+              size={24}
+              color="#fff"
+            />
           </TouchableOpacity>
           <ContextMenu
             actions={getMenuActions()}
             onPress={(e) => {
-              const selectedAction = getMenuActions().find(action => action.title === e.nativeEvent.name);
+              const selectedAction = getMenuActions().find(
+                (action) => action.title === e.nativeEvent.name
+              );
               if (selectedAction) {
                 selectedAction.onPress();
               }
@@ -547,7 +626,11 @@ export default function ChannelDetailsScreen() {
             previewBackgroundColor="#f2f2f2"
           >
             <View style={styles.headerButton}>
-              <MaterialCommunityIcons name="dots-vertical" size={24} color="#fff" />
+              <MaterialCommunityIcons
+                name="dots-vertical"
+                size={24}
+                color="#fff"
+              />
             </View>
           </ContextMenu>
         </View>
@@ -571,7 +654,10 @@ export default function ChannelDetailsScreen() {
 
           {/* Modern Message input with attachment icon */}
           <View style={styles.inputContainer}>
-            <TouchableOpacity onPress={handleAttachmentPress} style={styles.iconButton}>
+            <TouchableOpacity
+              onPress={handleAttachmentPress}
+              style={styles.iconButton}
+            >
               <Ionicons name="attach" size={24} color="#2563EB" />
             </TouchableOpacity>
             <TextInput
@@ -585,7 +671,7 @@ export default function ChannelDetailsScreen() {
             <TouchableOpacity
               style={[
                 styles.sendButton,
-                !messageText.trim() && styles.sendButtonDisabled
+                !messageText.trim() && styles.sendButtonDisabled,
               ]}
               onPress={handleSendMessage}
               disabled={!messageText.trim()}
@@ -768,8 +854,8 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: '#DC2626',
-    textAlign: 'center',
+    color: "#DC2626",
+    textAlign: "center",
     marginVertical: 20,
   },
   modalContainer: {
@@ -787,5 +873,23 @@ const styles = StyleSheet.create({
     top: 40,
     right: 20,
     zIndex: 2,
+  },
+  // New styles for enhanced image preview and modal
+  thumbnailImage: {
+    width: 150, // Increased width for higher-res preview
+    height: 150, // Increased height
+    borderRadius: 8,
+    resizeMode: "cover", // Preserve aspect ratio while covering the area
+    marginVertical: 4, // Add some vertical margin
+  },
+  modalScrollViewContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalImage: {
+    width: "95%", // Use most of the screen width
+    height: "95%", // Use most of the screen height
+    resizeMode: "contain", // Ensure the whole image is visible
   },
 });
