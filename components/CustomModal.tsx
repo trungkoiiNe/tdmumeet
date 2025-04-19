@@ -11,7 +11,13 @@ import {
   Dimensions,
 } from "react-native";
 
-type ModalType = "alert" | "input" | "deleteConfirm" | "loading" | "custom" | "information";
+type ModalType =
+  | "alert"
+  | "input"
+  | "deleteConfirm"
+  | "loading"
+  | "custom"
+  | "information";
 
 type CustomModalProps = {
   visible: boolean;
@@ -109,48 +115,48 @@ const CustomModal = ({
               {(modalType === "alert" ||
                 modalType === "input" ||
                 modalType === "deleteConfirm") && (
-                  <TouchableOpacity
-                    onPress={() =>
-                      onConfirm?.(modalType === "input" ? inputValue : undefined)
-                    }
-                    style={[
-                      styles.button,
-                      modalType === "deleteConfirm"
-                        ? styles.dangerButton
-                        : styles.confirmButton,
-                    ]}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.confirmButtonText}>OK</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-  
-            {modalType === "information" && (
-              <View style={styles.footer}>
                 <TouchableOpacity
-                  onPress={onClose}
-                  style={[styles.button, styles.confirmButton]}
+                  onPress={() =>
+                    onConfirm?.(modalType === "input" ? inputValue : undefined)
+                  }
+                  style={[
+                    styles.button,
+                    modalType === "deleteConfirm"
+                      ? styles.dangerButton
+                      : styles.confirmButton,
+                  ]}
                   activeOpacity={0.8}
                 >
                   <Text style={styles.confirmButtonText}>OK</Text>
                 </TouchableOpacity>
-              </View>
-            )}
-          </View>
+              )}
+            </View>
+          )}
+
+          {modalType === "information" && (
+            <View style={styles.footer}>
+              <TouchableOpacity
+                onPress={onClose}
+                style={[styles.button, styles.confirmButton]}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.confirmButtonText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
-      </Modal>
-    );
-  };
-  
-  const styles = StyleSheet.create({
-    overlay: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-      backgroundColor: "rgba(0, 0, 0, 0.4)",
-      padding: 16,
+      </View>
+    </Modal>
+  );
+};
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    padding: 16,
   },
   modalContainer: {
     width: MODAL_WIDTH,
@@ -251,5 +257,4 @@ const CustomModal = ({
     fontWeight: "500",
   },
 });
-
 export default CustomModal;

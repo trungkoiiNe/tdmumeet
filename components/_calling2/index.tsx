@@ -17,14 +17,14 @@ import {
   toggleAudio,
   toggleVideo,
   switchCamera,
-} from "../../../../utils/media";
+} from "../../utils/media";
 import {
   createPeerConnection,
   createOffer,
   createAnswer,
   addIceCandidate,
   addLocalStreamToPeerConnection,
-} from "../../../../utils/webRTC";
+} from "../../utils/webRTC";
 import { RTCSessionDescription } from "react-native-webrtc";
 
 const SIGNALING_SERVER_URL = "http://192.168.1.171:5000/";

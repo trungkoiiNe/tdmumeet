@@ -49,7 +49,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
   login: async () => {
     try {
-      const { idToken } = (await GoogleSignin.signIn()).data;
+      const data = (await GoogleSignin.signIn()).data;
+      console.log(data);
+      const idToken = data.idToken;
       if (!idToken) {
         throw new Error("No ID token found");
       }

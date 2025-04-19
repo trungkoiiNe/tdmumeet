@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Tabs } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, LayoutAnimation } from "react-native";
 import { useThemeStore } from "../../../stores/themeStore";
 import { darkTheme, lightTheme } from "../../../utils/themes";
 import { useTeamStore } from "../../../stores/teamStore";
@@ -29,17 +29,16 @@ const TAB_CONFIG = {
     title: "Calendar",
     iconName: "calendar",
   },
-  calling: {
-    name: "(calling)",
-    title: "Calling",
-    iconName: "phone",
-  },
-  calling2: {
-    name: "(calling2)",
-    title: "Calling2",
-    iconName: "phone",
-  },
-
+  // calling: {
+  //   name: "(calling)",
+  //   title: "Calling",
+  //   iconName: "phone",
+  // },
+  // calling2: {
+  //   name: "(calling2)",
+  //   title: "Calling2",
+  //   iconName: "phone",
+  // },
   calling3: {
     name: "(calling3)",
     title: "Calling3",
@@ -52,14 +51,17 @@ export default function UserTabsLayout() {
   const theme = isDarkMode ? darkTheme : lightTheme;
   const auth = getAuth();
   const currentUser = auth?.currentUser;
-  // Removed unused 'messages' property from destructuring
   const { fetchUnreadMessages } = useTeamStore();
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+
+  // Configure animations when component mounts
+  useEffect(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+  }, []);
 
   useEffect(() => {
     const getUnreadMessages = async () => {
       try {
-        // Handle null/undefined user ID gracefully
         if (!currentUser?.uid) {
           setTotalUnreadCount(0);
           return;
@@ -68,14 +70,13 @@ export default function UserTabsLayout() {
         setTotalUnreadCount(unreadMessages?.length || 0);
       } catch (error) {
         console.error("Error fetching unread messages:", error);
-        setTotalUnreadCount(0); // Fallback to 0 on error
+        setTotalUnreadCount(0);
       }
     };
 
     getUnreadMessages();
-  }, [fetchUnreadMessages, currentUser?.uid]); // Added proper dependencies
+  }, [fetchUnreadMessages, currentUser?.uid]);
 
-  // Memoized tab icon render functions
   const renderTabIcon = useCallback(
     (
       iconName: keyof typeof FontAwesome.glyphMap,
@@ -104,6 +105,7 @@ export default function UserTabsLayout() {
         headerShown: false,
       }}
     >
+      {/* All Tabs.Screen components remain unchanged */}
       <Tabs.Screen
         name={TAB_CONFIG.home.name}
         options={{
@@ -115,7 +117,6 @@ export default function UserTabsLayout() {
             ),
         }}
       />
-
       <Tabs.Screen
         name={TAB_CONFIG.teams.name}
         options={{
@@ -139,28 +140,6 @@ export default function UserTabsLayout() {
             ),
         }}
       />
-      {/* <Tabs.Screen
-        name={TAB_CONFIG.calling.name}
-        options={{
-          title: TAB_CONFIG.calling.title,
-          tabBarIcon: ({ color }) =>
-            renderTabIcon(
-              TAB_CONFIG.calling.iconName as keyof typeof FontAwesome.glyphMap,
-              color
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name={TAB_CONFIG.calling2.name}
-        options={{
-          title: TAB_CONFIG.calling2.title,
-          tabBarIcon: ({ color }) =>
-            renderTabIcon(
-              TAB_CONFIG.calling2.iconName as keyof typeof FontAwesome.glyphMap,
-              color
-            ),
-        }}
-      /> */}
       <Tabs.Screen
         name={TAB_CONFIG.calling3.name}
         options={{

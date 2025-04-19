@@ -32,7 +32,7 @@ const handleError = (error: unknown, message: string): null => {
   return null;
 };
 
-type Team = {
+export type Team = {
   id: string;
   name: string;
   desc: string;
