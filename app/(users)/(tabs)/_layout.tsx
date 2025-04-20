@@ -29,6 +29,11 @@ const TAB_CONFIG = {
     title: "Calendar",
     iconName: "calendar",
   },
+  documents: {
+    name: "documents",
+    title: "Documents",
+    iconName: "file-text",
+  },
   // calling: {
   //   name: "(calling)",
   //   title: "Calling",
@@ -147,6 +152,17 @@ export default function UserTabsLayout() {
           tabBarIcon: ({ color }) =>
             renderTabIcon(
               TAB_CONFIG.calling3.iconName as keyof typeof FontAwesome.glyphMap,
+              color
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name={TAB_CONFIG.documents.name}
+        options={{
+          title: TAB_CONFIG.documents.title,
+          tabBarIcon: ({ color }) =>
+            renderTabIcon(
+              TAB_CONFIG.documents.iconName as keyof typeof FontAwesome.glyphMap,
               color
             ),
         }}

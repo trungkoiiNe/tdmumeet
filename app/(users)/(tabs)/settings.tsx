@@ -8,6 +8,7 @@ import {
   Switch,
   ScrollView,
   TouchableOpacity,
+  TextInput,
 } from "react-native";
 import ContentLoader, { Rect } from "react-content-loader/native";
 import { useAuthStore } from "../../../stores/authStore";
@@ -17,22 +18,36 @@ import { lightTheme, darkTheme } from "../../../utils/themes";
 import { Ionicons } from "@expo/vector-icons";
 import CustomModal from "../../../components/CustomModal";
 import { toast } from "@baronha/ting";
+import { MMKV } from 'react-native-mmkv';
+const storage = new MMKV();
 
 // --- Helper Components (Keep as is or move to separate files later) ---
 
 interface InfoItemProps {
   label: string;
   value: string;
+  editable?: boolean;
+  onChangeText?: (text: string) => void;
 }
-const InfoItem: React.FC<InfoItemProps> = ({ label, value }) => {
+const InfoItem: React.FC<InfoItemProps> = ({ label, value, editable, onChangeText }) => {
   const { isDarkMode } = useThemeStore();
   const theme = isDarkMode ? darkTheme : lightTheme;
   return (
     <View style={styles.row}>
       <Text style={[styles.cellKey, { color: theme.textColor }]}>{label}</Text>
-      <Text style={[styles.cellValue, { color: theme.secondaryTextColor }]}>
-        {value}
-      </Text>
+      {editable ? (
+        <TextInput
+          style={[styles.cellValue, { color: theme.secondaryTextColor }]}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder="Enter value"
+          placeholderTextColor={theme.secondaryTextColor}
+        />
+      ) : (
+        <Text style={[styles.cellValue, { color: theme.secondaryTextColor }]}>
+          {value}
+        </Text>
+      )}
     </View>
   );
 };
@@ -258,6 +273,47 @@ interface AppearanceSectionProps {
   isDarkMode: boolean;
   toggleTheme: () => void;
 }
+
+const BackendConfigSection: React.FC<{ theme: typeof lightTheme | typeof darkTheme }> = React.memo(({ theme }) => {
+  const [backendIP, setBackendIP] = useState('http://localhost:8000');
+
+  useEffect(() => {
+    const loadBackendIP = () => {
+      try {
+        const savedIP = storage.getString('backendIP');
+        if (savedIP) {
+          setBackendIP(savedIP);
+        }
+      } catch (error) {
+        console.error('Failed to load backend IP:', error);
+      }
+    };
+    loadBackendIP();
+  }, []);
+
+  const handleIPChange = (ip: string) => {
+    setBackendIP(ip);
+    try {
+      storage.set('backendIP', ip);
+    } catch (error) {
+      console.error('Failed to save backend IP:', error);
+    }
+  };
+
+  return (
+    <>
+      <SectionHeader title="Backend Configuration" />
+      <SettingsCard>
+        <InfoItem 
+          label="Backend IP" 
+          value={backendIP} 
+          editable={true}
+          onChangeText={handleIPChange}
+        />
+      </SettingsCard>
+    </>
+  );
+});
 
 const AppearanceSection: React.FC<AppearanceSectionProps> = React.memo(
   ({ theme, isDarkMode, toggleTheme }) => {
@@ -509,6 +565,8 @@ export default function Settings() {
           loaderColors={loaderColors}
           onShowAvatarError={modalActions.openAvatarErrorModal}
         />
+
+        <BackendConfigSection theme={theme} />
 
         <AppearanceSection
           theme={theme}
