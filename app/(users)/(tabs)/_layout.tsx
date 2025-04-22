@@ -2,9 +2,9 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Tabs } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { View, StyleSheet, LayoutAnimation } from "react-native";
-import { useThemeStore } from "../../../stores/themeStore";
-import { darkTheme, lightTheme } from "../../../utils/themes";
-import { useTeamStore } from "../../../stores/teamStore";
+import { useThemeStore } from "@/stores/themeStore";
+import { darkTheme, lightTheme } from "@/utils/themes";
+import { useTeamStore } from "@/stores/teamStore";
 import { getAuth } from "@react-native-firebase/auth";
 
 // Tab configuration object
@@ -44,10 +44,15 @@ const TAB_CONFIG = {
   //   title: "Calling2",
   //   iconName: "phone",
   // },
-  calling3: {
-    name: "(calling3)",
-    title: "Calling3",
-    iconName: "phone",
+  // calling3: {
+  //   name: "(calling3)",
+  //   title: "Calling3",
+  //   iconName: "phone",
+  // },
+  posts: {
+    name: "posts",
+    title: "Posts",
+    iconName: "file-text",
   },
 };
 
@@ -145,7 +150,7 @@ export default function UserTabsLayout() {
             ),
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name={TAB_CONFIG.calling3.name}
         options={{
           title: TAB_CONFIG.calling3.title,
@@ -155,7 +160,7 @@ export default function UserTabsLayout() {
               color
             ),
         }}
-      />
+      /> */}
       <Tabs.Screen
         name={TAB_CONFIG.documents.name}
         options={{
@@ -163,6 +168,17 @@ export default function UserTabsLayout() {
           tabBarIcon: ({ color }) =>
             renderTabIcon(
               TAB_CONFIG.documents.iconName as keyof typeof FontAwesome.glyphMap,
+              color
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name={TAB_CONFIG.posts.name}
+        options={{
+          title: TAB_CONFIG.posts.title,
+          tabBarIcon: ({ color }) =>
+            renderTabIcon(
+              TAB_CONFIG.posts.iconName as keyof typeof FontAwesome.glyphMap,
               color
             ),
         }}

@@ -15,7 +15,7 @@ const pickupImage = async (): Promise<string | null> => {
     }
 
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: 'images',
       allowsEditing: true,
       quality: 1, // Start with high quality
       base64: false, // Do NOT convert to Base64 yet
@@ -30,9 +30,12 @@ const pickupImage = async (): Promise<string | null> => {
     // Compress & Resize the image to fit under 1MB
     let compressedImage = await ImageManipulator.manipulateAsync(
       imageUri,
-      [{ resize: { width: 800 } }], // Resize width to 800px (adjust as needed)
+      [
+        // { resize: { width: 800 } }
+      ]
+      , // Resize width to 800px (adjust as needed)
       {
-        compress: 0.7,
+        compress: 1,
         format: ImageManipulator.SaveFormat.JPEG,
         base64: true,
       }
@@ -53,7 +56,7 @@ const pickupImage = async (): Promise<string | null> => {
         imageUri,
         [{ resize: { width: 600 } }], // Smaller resize
         {
-          compress: 0.5, // Higher compression
+          compress: 0.75, // Higher compression
           format: ImageManipulator.SaveFormat.JPEG,
           base64: true,
         }

@@ -25,7 +25,7 @@ import {
 // Import axios for API requests
 import axios from "axios";
 // Import auth store
-import { useAuthStore } from "../../../../stores/authStore";
+import { useAuthStore } from "../../stores/authStore";
 
 // Define basic information
 const appId = process.env.EXPO_PUBLIC_AGORA_APP_ID;

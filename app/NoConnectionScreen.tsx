@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useThemeStore } from '../stores/themeStore';
-import { darkTheme, lightTheme } from '../utils/themes';
+import { useThemeStore } from '@/stores/themeStore';
+import { darkTheme, lightTheme } from '@/utils/themes';
 import * as Network from 'expo-network';
 
 export default function NoConnectionScreen() {

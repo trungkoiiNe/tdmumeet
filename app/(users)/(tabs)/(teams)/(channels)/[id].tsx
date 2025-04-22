@@ -23,10 +23,10 @@ import {
   View,
 } from "react-native";
 import ContextMenu from "react-native-context-menu-view";
-import { useTeamStore } from "../../../../../stores/teamStore";
-import { useThemeStore } from "../../../../../stores/themeStore";
-import { darkTheme, lightTheme } from "../../../../../utils/themes";
-import pickupImage from "../../../../../utils/avatar"; // added import for image picking
+import { useTeamStore } from "@/stores/teamStore";
+import { useThemeStore } from "@/stores/themeStore";
+import { darkTheme, lightTheme } from "@/utils/themes";
+import pickupImage from "@/utils/avatar"; // added import for image picking
 
 // Define interfaces for our data models
 interface Message {

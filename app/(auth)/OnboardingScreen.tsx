@@ -1,12 +1,12 @@
 import React from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import Swiper from "react-native-swiper";
-import { useAuthStore } from "../../stores/authStore";
-import { useThemeStore } from "../../stores/themeStore"; // Import theme store
+import { useAuthStore } from "@/stores/authStore";
+import { useThemeStore } from "@/stores/themeStore"; // Import theme store
 import { useRouter } from "expo-router";
 
-const logo = require("../../assets/tdmu_logo.png");
-const googleLogo = require("../../assets/google_logo.png");
+const logo = require("@/assets/tdmu_logo.png");
+const googleLogo = require("@/assets/google_logo.png");
 
 const OnboardingScreen = () => {
   const { login, logout } = useAuthStore();

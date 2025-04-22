@@ -16,14 +16,14 @@ import {
 } from "react-native";
 import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
-import { useTeamStore } from "../../../../stores/teamStore";
-import { useThemeStore } from "../../../../stores/themeStore";
-import { darkTheme, lightTheme } from "../../../../utils/themes";
-import pickupImage from "../../../../utils/avatar";
+import { useTeamStore } from "@/stores/teamStore";
+import { useThemeStore } from "@/stores/themeStore";
+import { darkTheme, lightTheme } from "@/utils/themes";
+import pickupImage from "@/utils/avatar";
 import { getAuth } from "@react-native-firebase/auth";
 import { FlashList } from "@shopify/flash-list";
 import ContentLoader, { Rect } from "react-content-loader/native";
-import CustomModal from "../../../../components/CustomModal";
+import CustomModal from "@/components/CustomModal";
 
 // Create Team Modal Component
 const CreateTeamModal = ({ visible, onClose, onSubmit }) => {

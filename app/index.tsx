@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import ContentLoader, { Rect, Circle } from "react-content-loader/native";
-import { useThemeStore } from "../stores/themeStore";
+import { useThemeStore } from "@/stores/themeStore";
 
 // Loading messages to display
 const LOADING_MESSAGES = [

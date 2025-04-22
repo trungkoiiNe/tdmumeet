@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { SafeAreaView, StyleSheet, Text, View, ScrollView, TouchableOpacity } from "react-native";
-import { useThemeStore } from "../../../stores/themeStore";
-import { darkTheme, lightTheme } from "../../../utils/themes";
+import { useThemeStore } from "@/stores/themeStore";
+import { darkTheme, lightTheme } from "@/utils/themes";
 
 const HomeScreen: React.FC = () => {
   const { isDarkMode } = useThemeStore();

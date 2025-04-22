@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
-import { useTeamStore } from '../stores/teamStore';
+import { useTeamStore } from '@/stores/teamStore';
 import { getAuth } from '@react-native-firebase/auth';
 import { FlashList } from '@shopify/flash-list';
 

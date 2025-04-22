@@ -11,12 +11,12 @@ import {
   TextInput,
 } from "react-native";
 import ContentLoader, { Rect } from "react-content-loader/native";
-import { useAuthStore } from "../../../stores/authStore";
-import { useThemeStore } from "../../../stores/themeStore";
-import pickupImage from "../../../utils/avatar";
-import { lightTheme, darkTheme } from "../../../utils/themes";
+import { useAuthStore } from "@/stores/authStore";
+import { useThemeStore } from "@/stores/themeStore";
+import pickupImage from "@/utils/avatar";
+import { lightTheme, darkTheme } from "@/utils/themes";
 import { Ionicons } from "@expo/vector-icons";
-import CustomModal from "../../../components/CustomModal";
+import CustomModal from "@/components/CustomModal";
 import { toast } from "@baronha/ting";
 import { MMKV } from 'react-native-mmkv';
 const storage = new MMKV();

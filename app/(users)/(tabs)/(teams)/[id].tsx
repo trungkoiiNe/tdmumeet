@@ -16,11 +16,11 @@ import {
 } from "react-native";
 import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
-import { useAuthStore } from "../../../../stores/authStore";
-import { useTeamStore } from "../../../../stores/teamStore";
-import pickupImage from "../../../../utils/avatar";
-import { useThemeStore } from "../../../../stores/themeStore";
-import { darkTheme, lightTheme } from "../../../../utils/themes";
+import { useAuthStore } from "@/stores/authStore";
+import { useTeamStore } from "@/stores/teamStore";
+import pickupImage from "@/utils/avatar";
+import { useThemeStore } from "@/stores/themeStore";
+import { darkTheme, lightTheme } from "@/utils/themes";
 import { Animated, KeyboardAvoidingView, Platform } from "react-native";
 
 // Define interfaces for type safety

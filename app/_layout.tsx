@@ -1,10 +1,11 @@
 import { StatusBar } from "react-native";
 import React, { useEffect, useState, useRef } from "react";
 import { Slot, useRouter, useSegments } from "expo-router";
-import { useAuthStore } from "../stores/authStore";
-import { useThemeStore } from "../stores/themeStore";
-import { darkTheme, lightTheme } from "../utils/themes";
+import { useAuthStore } from "@/stores/authStore";
+import { useThemeStore } from "@/stores/themeStore";
+import { darkTheme, lightTheme } from "@/utils/themes";
 import * as Network from "expo-network";
+import { PaperProvider } from "react-native-paper";
 
 export default function RootLayout() {
   const { getUser } = useAuthStore();
@@ -142,9 +143,9 @@ export default function RootLayout() {
   };
 
   return (
-    <>
+    <PaperProvider >
       <Slot />
       <StatusBar barStyle={theme.statusBarStyle as any} />
-    </>
+    </PaperProvider>
   );
 }

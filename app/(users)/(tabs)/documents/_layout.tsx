@@ -1,21 +1,13 @@
-import { View, Text } from "react-native";
-import React from "react";
-import { Stack } from "expo-router";
-export default function _layout() {
+import { Stack } from "expo-router"
+import React from "react"
+
+export default function DocumentsLayout() {
   return (
-    <Stack>
-      <Stack.Screen
-        name="index"
-        options={{
-          headerTitle: "Chat",
-          headerStyle: { backgroundColor: "teal" },
-          headerTintColor: "#fff",
-          headerShown: false,
-          headerTitleStyle: {
-            fontWeight: "bold",
-          },
-        }}
-      />
-    </Stack>
-  );
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: "slide_from_right",
+      }}
+    />
+  )
 }
