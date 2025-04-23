@@ -19,10 +19,9 @@ import { v4 as uuidv4 } from "uuid";
 import { useAuthStore } from "@/stores/authStore";
 import { useTeamStore } from "@/stores/teamStore";
 import pickupImage from "@/utils/avatar";
-import { useThemeStore } from "@/stores/themeStore";
 import { darkTheme, lightTheme } from "@/utils/themes";
 import { Animated, KeyboardAvoidingView, Platform } from "react-native";
-
+import { useThemeStore } from 'stores/themeStore';
 // Define interfaces for type safety
 interface Team {
   id: string;
@@ -353,80 +352,80 @@ const ChannelList: React.FC<{
   onCreateChannel,
   unreadChannels,
 }) => {
-  return (
-    <>
-      <Text style={styles.sectionTitle}>Channels</Text>
-      {channels.map((channel) => {
-        const hasUnread = unreadChannels.includes(channel.id);
+    return (
+      <>
+        <Text style={styles.sectionTitle}>Channels</Text>
+        {channels.map((channel) => {
+          const hasUnread = unreadChannels.includes(channel.id);
 
-        return (
-          <View
-            key={channel.id}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 10,
-            }}
-          >
-            <TouchableOpacity
-              style={[
-                styles.channelItem,
-                hasUnread && styles.channelItemWithUnread,
-              ]}
-              onPress={() =>
-                router.push(
-                  `/(users)/(tabs)/(teams)/(channels)/${channel.id}?teamId=${teamId}`
-                )
-              }
+          return (
+            <View
+              key={channel.id}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 10,
+              }}
             >
-              <View style={styles.channelIconContainer}>
-                <Feather
-                  name={channel.isPrivate ? "lock" : "message-square"}
-                  size={16}
-                  color={hasUnread ? "#3b82f6" : "#6b7280"}
-                />
-                {hasUnread && <View style={styles.channelUnreadDot} />}
-              </View>
-
-              <View style={styles.channelTextContainer}>
-                <Text
-                  style={[
-                    styles.channelNameText,
-                    hasUnread && styles.channelNameUnread,
-                  ]}
-                >
-                  {channel.name}
-                </Text>
-                <Text style={styles.channelDescText}>{channel.desc}</Text>
-              </View>
-            </TouchableOpacity>
-
-            {(isCurrentUserOwner || channel.createdBy === currentUserId) && (
               <TouchableOpacity
-                style={styles.channelDeleteButton}
-                onPress={() => onDeleteChannel(channel.id)}
+                style={[
+                  styles.channelItem,
+                  hasUnread && styles.channelItemWithUnread,
+                ]}
+                onPress={() =>
+                  router.push(
+                    `/(users)/(tabs)/(teams)/(channels)/${channel.id}?teamId=${teamId}`
+                  )
+                }
               >
-                <Feather name="trash" size={16} color="red" />
+                <View style={styles.channelIconContainer}>
+                  <Feather
+                    name={channel.isPrivate ? "lock" : "message-square"}
+                    size={16}
+                    color={hasUnread ? "#3b82f6" : "#6b7280"}
+                  />
+                  {hasUnread && <View style={styles.channelUnreadDot} />}
+                </View>
+
+                <View style={styles.channelTextContainer}>
+                  <Text
+                    style={[
+                      styles.channelNameText,
+                      hasUnread && styles.channelNameUnread,
+                    ]}
+                  >
+                    {channel.name}
+                  </Text>
+                  <Text style={styles.channelDescText}>{channel.desc}</Text>
+                </View>
               </TouchableOpacity>
-            )}
-          </View>
-        );
-      })}
-      {isCurrentUserOwner && (
-        <TouchableOpacity
-          style={[styles.actionButton, { marginTop: 16 }]}
-          onPress={onCreateChannel}
-        >
-          <Feather name="plus" size={18} color="#2563eb" />
-          <Text style={[styles.editActionText, { marginLeft: 8 }]}>
-            Create Channel
-          </Text>
-        </TouchableOpacity>
-      )}
-    </>
-  );
-};
+
+              {(isCurrentUserOwner || channel.createdBy === currentUserId) && (
+                <TouchableOpacity
+                  style={styles.channelDeleteButton}
+                  onPress={() => onDeleteChannel(channel.id)}
+                >
+                  <Feather name="trash" size={16} color="red" />
+                </TouchableOpacity>
+              )}
+            </View>
+          );
+        })}
+        {isCurrentUserOwner && (
+          <TouchableOpacity
+            style={[styles.actionButton, { marginTop: 16 }]}
+            onPress={onCreateChannel}
+          >
+            <Feather name="plus" size={18} color="#2563eb" />
+            <Text style={[styles.editActionText, { marginLeft: 8 }]}>
+              Create Channel
+            </Text>
+          </TouchableOpacity>
+        )}
+      </>
+    );
+  };
 
 const TeamEditModal: React.FC<{
   visible: boolean;
@@ -519,6 +518,7 @@ export default function TeamDetailsScreen() {
 
   const { getUserByUid, changeAvatar } = useAuthStore();
   const { isDarkMode } = useThemeStore();
+  // console.log("isDarkMode", isDarkMode);
   const theme = isDarkMode ? darkTheme : lightTheme;
 
   // Add state to store member information

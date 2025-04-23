@@ -3,8 +3,7 @@ import React from "react";
 
 export default function ChannelLayout() {
   return (
-    <Stack initialRouteName="index">
-      <Stack.Screen name="index" options={{ headerShown: false }} />
+    <Stack initialRouteName="[id]">
       <Stack.Screen
         name="[id]"
         options={{
