@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Text, Avatar, IconButton, Divider } from 'react-native-paper';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { Text, IconButton, Divider } from 'react-native-paper';
 import { FlashList } from '@shopify/flash-list';
 import { FontAwesome } from '@expo/vector-icons';
 import { usePostStore } from '@/stores/postStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { lightTheme, darkTheme } from '@/utils/themes';
 import type { Comment } from '@/stores/postStore';
-
+import { useAuthStore } from '@/stores/authStore';
 // Extending the Comment type from postStore to include replies for local state management
 type CommentWithReplies = Comment & {
   replies?: CommentWithReplies[];
@@ -22,12 +22,17 @@ interface CommentsSectionProps {
 
 const CommentsSection: React.FC<CommentsSectionProps> = ({ teamId, postId, userId, userName }) => {
   // console.log(teamId, postId, userId, userName);
+  const { getUser, getAvatarByUid } = useAuthStore();
+  const user = getUser();
+  const defaultAvatarUrl = 'https://ui-avatars.com/api/?name=User'; // fallback avatar
+  const [avatarMap, setAvatarMap] = useState<{ [uid: string]: string | undefined }>({});
   const isDarkMode = useThemeStore(state => state.isDarkMode);
   const theme = isDarkMode ? darkTheme : lightTheme;
   const { fetchComments, addComment, likeComment, unlikeComment, deleteComment } = usePostStore();
 
   const [comments, setComments] = useState<CommentWithReplies[]>([]);
   const [loading, setLoading] = useState(true);
+  const [avatarsLoading, setAvatarsLoading] = useState(false);
   const [newCommentText, setNewCommentText] = useState('');
   const [replyingTo, setReplyingTo] = useState<{ id: string, name: string } | null>(null);
   const [showReplies, setShowReplies] = useState<Record<string, boolean>>({});
@@ -35,7 +40,40 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ teamId, postId, userI
   // Fetch comments when component mounts
   useEffect(() => {
     loadComments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId, postId]);
+
+  // Load avatars immediately after comments load
+  useEffect(() => {
+    const loadAvatars = async () => {
+      setAvatarsLoading(true);
+      const uniqueAuthorIds = Array.from(new Set(comments.map(c => c.authorId)));
+      const avatarEntries = await Promise.all(
+        uniqueAuthorIds.map(async (uid) => {
+          if (!uid) return [uid, undefined];
+          try {
+            const avatar = await getAvatarByUid(uid);
+            return [uid, avatar] as [string, string | undefined];
+          } catch {
+            return [uid, undefined];
+          }
+        })
+      );
+      const avatarObj: { [uid: string]: string | undefined } = {};
+      avatarEntries.forEach(([uid, avatar]) => {
+        if (uid) avatarObj[uid] = avatar;
+      });
+      setAvatarMap(avatarObj);
+      setAvatarsLoading(false);
+    };
+    if (comments.length > 0) {
+      loadAvatars();
+    } else {
+      setAvatarMap({});
+      setAvatarsLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comments]);
 
   const loadComments = async () => {
     setLoading(true);
@@ -52,11 +90,11 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ teamId, postId, userI
 
   const handleAddComment = async () => {
     if (!newCommentText.trim()) return;
-
     try {
+      const currentUser = getUser();
       const newComment: Omit<Comment, 'commentId' | 'createdAt' | 'likes' | 'likedBy' | 'isDeleted' | 'childrenCount'> = {
-        authorId: userId,
-        authorName: userName,
+        authorId: currentUser?.uid,
+        authorName: currentUser?.displayName,
         content: newCommentText.trim(),
         parentId: replyingTo ? replyingTo.id : "",
         replyToName: replyingTo ? replyingTo.name : "",
@@ -135,11 +173,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ teamId, postId, userI
     return (
       <View style={[styles.commentContainer, { backgroundColor: theme.cardBackgroundColor }]}>
         <View style={styles.commentHeader}>
-          <Avatar.Text
-            size={32}
-            label={item.authorName.charAt(0).toUpperCase()}
-            style={{ backgroundColor: theme.primaryColor, marginRight: 8 }}
-          />
+          <Image source={{ uri: avatarMap[item.authorId] || defaultAvatarUrl }} style={{ width: 32, height: 32, borderRadius: 16 }} />
           <View style={styles.commentContent}>
             <View style={styles.commentAuthorRow}>
               <Text style={[styles.commentAuthor, { color: theme.textColor }]}>{item.authorName}</Text>
@@ -216,6 +250,14 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ teamId, postId, userI
     );
   };
 
+  if (loading || avatarsLoading) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.backgroundColor, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={theme.primaryColor} />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
       <Divider style={{ backgroundColor: theme.borderColor }} />
@@ -240,11 +282,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ teamId, postId, userI
           </View>
         )}
         <View style={styles.inputRow}>
-          <Avatar.Text
-            size={32}
-            label={userName.charAt(0).toUpperCase()}
-            style={{ backgroundColor: theme.primaryColor, marginRight: 8 }}
-          />
+          <Image source={{ uri: avatarMap[userId] || defaultAvatarUrl }} style={{ width: 32, height: 32, borderRadius: 16 }} />
           <TextInput
             style={[
               styles.input,
@@ -394,3 +432,4 @@ const styles = StyleSheet.create({
 });
 
 export default CommentsSection;
+

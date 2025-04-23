@@ -7,21 +7,22 @@ import { Portal } from "react-native-paper";
 import { useThemeStore } from "@/stores/themeStore";
 
 // Import components
-import Header from "./components/Header";
-import TeamSelector from "./components/TeamSelector";
-import SearchBar from "./components/SearchBar";
-import PostsList from "./components/PostsList";
-import EmptyState from "./components/EmptyState";
-import NoTeamState from "./components/NoTeamState";
-import AuthRequiredState from "./components/AuthRequiredState";
-import CreatePostFAB from "./components/CreatePostFAB";
-import CreatePostModal from "./components/CreatePostModal";
+import Header from "../../../../components/Post/Header";
+import TeamSelector from "../../../../components/Post/TeamSelector";
+import SearchBar from "../../../../components/Post/SearchBar";
+import PostsList from "../../../../components/Post/PostsList";
+import EmptyState from "../../../../components/Post/EmptyState";
+import NoTeamState from "../../../../components/Post/NoTeamState";
+import AuthRequiredState from "../../../../components/Post/AuthRequiredState";
+import CreatePostFAB from "../../../../components/Post/CreatePostFAB";
+import CreatePostModal from "../../../../components/Post/CreatePostModal";
 // import PostDetailModal from "../../../../components/PostDetailModal";
-import PostOptionsMenu from "./components/PostOptionsMenu";
+import PostOptionsMenu from "../../../../components/Post/PostOptionsMenu";
 
 // Import constants
-import { INITIAL_POST_STATE } from "./constants";
+import { INITIAL_POST_STATE } from "../../../../components/Post/constants";
 import { lightTheme, darkTheme } from '@/utils/themes';
+import { G } from "react-native-svg";
 
 
 export default function PostsScreen() {
@@ -38,6 +39,11 @@ export default function PostsScreen() {
         getPostById,
         loading,
     } = usePostStore();
+    // Local posts state for optimistic UI
+    const [localPosts, setLocalPosts] = useState(posts);
+    useEffect(() => {
+        setLocalPosts(posts);
+    }, [posts]);
     const { teams, fetchTeams } = useTeamStore();
     const { getUser } = useAuthStore();
     // State
@@ -58,6 +64,7 @@ export default function PostsScreen() {
     // Get current user
     const user = getUser();
     const userId = user?.uid;
+    // console.log(user.displayName)
 
     // Only show teams the user has access to
     const accessibleTeams = teams.filter(team => team.members.includes(userId));
@@ -73,7 +80,7 @@ export default function PostsScreen() {
     }, [selectedTeamId]);
 
     // Filter posts based on search query
-    const filteredPosts = posts.filter(post =>
+    const filteredPosts = localPosts.filter(post =>
         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (post.tags && post.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())))
@@ -134,13 +141,35 @@ export default function PostsScreen() {
     const handleToggleLike = useCallback(async (postId, isLiked) => {
         if (!selectedTeamId) return;
 
-        if (isLiked) {
-            await unlikePost(selectedTeamId, postId, userId || "test-user");
-        } else {
-            await likePost(selectedTeamId, postId, userId || "test-user");
-        }
+        // Optimistically update localPosts
+        setLocalPosts(prevPosts => prevPosts.map(post => {
+            if (post.id !== postId) return post;
+            const likedBy = post.likedBy || [];
+            let newLikedBy;
+            if (isLiked) {
+                newLikedBy = likedBy.filter(uid => uid !== userId);
+            } else {
+                newLikedBy = [...likedBy, userId];
+            }
+            return {
+                ...post,
+                likedBy: newLikedBy,
+                likes: (post.likes || 0) + (isLiked ? -1 : 1)
+            };
+        }));
 
-        fetchPosts(selectedTeamId);
+        // Call backend, but don't refresh UI
+        try {
+            if (isLiked) {
+                await unlikePost(selectedTeamId, postId, userId || "test-user");
+            } else {
+                await likePost(selectedTeamId, postId, userId || "test-user");
+            }
+        } catch (error) {
+            // Optionally revert optimistic update or show error
+            // setLocalPosts(posts);
+        }
+        // No fetchPosts here
 
         // Update selected post if it's the one being liked/unliked
         if (selectedPost?.id === postId) {

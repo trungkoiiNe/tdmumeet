@@ -52,7 +52,7 @@ const TeamSelector = ({ teams, selectedTeamId, onSelectTeam }: TeamSelectorProps
             style={[
               styles.teamChip,
               { backgroundColor: theme.tagBackground },
-              selectedTeamId === team.id && { backgroundColor: theme.accentColor }
+              selectedTeamId === team.id && { backgroundColor: theme.primaryColor }
             ]}
             textStyle={{ color: selectedTeamId === team.id ? theme.buttonText : theme.tagText }}
             avatar={

@@ -37,6 +37,15 @@ export const lightTheme = {
   buttonText: "#fff",
   cancelButtonBackground: "#f1f5f9",
   cancelButtonText: "#64748b",
+
+  // Settings-specific colors
+  editButtonBackground: "#4C6EF5", // For edit avatar button
+  editButtonBorderColor: "#fff",
+  dividerColor: "#e0e0e0",
+  shadowColor: "#000",
+
+  // Overlay color
+  overlay: "rgba(0, 0, 0, 0.5)",
 };
 
 export const darkTheme = {
@@ -77,6 +86,15 @@ export const darkTheme = {
   buttonText: "#fff",
   cancelButtonBackground: "#374151",
   cancelButtonText: "#d1d5db",
+
+  // Settings-specific colors
+  editButtonBackground: "#4C6EF5", // Or a more suitable dark color if needed
+  editButtonBorderColor: "#1f2937",
+  dividerColor: "#374151",
+  shadowColor: "#000",
+
+  // Overlay color
+  overlay: "rgba(0, 0, 0, 0.6)",
 };
 
 // Default export of both themes

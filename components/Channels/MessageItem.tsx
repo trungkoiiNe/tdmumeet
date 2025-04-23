@@ -10,7 +10,7 @@ import {
 import { Avatar, Surface, Menu, Divider } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 // import * as Haptics from "expo-haptics";
-import type { Message } from "../types";
+import type { Message } from "../../app/(users)/(tabs)/(teams)/(channels)/types";
 import ImageViewer from "./ImageViewer";
 import { formatRelativeTime } from "@/utils/dateUtils";
 import React from "react";
@@ -34,6 +34,8 @@ const MessageItem = ({
   onReply,
   onReaction,
 }: MessageItemProps) => {
+  const messageRef = useRef<View>(null);
+  const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const isDark = useThemeStore((state) => state.isDarkMode);
   const theme = isDark ? darkTheme : lightTheme;
   const styles = getStyles(theme);
@@ -71,7 +73,14 @@ const MessageItem = ({
 
   const handleLongPress = () => {
     // Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setMenuVisible(true);
+    if (messageRef.current) {
+      messageRef.current.measureInWindow((x, y, width, height) => {
+        setMenuAnchor({ x: x + width / 2, y: y + height }); // Show menu below the message
+        setMenuVisible(true);
+      });
+    } else {
+      setMenuVisible(true);
+    }
   };
 
   const getInitials = (userId: string) => {
@@ -115,6 +124,7 @@ const MessageItem = ({
       )}
 
       <Pressable
+        ref={messageRef}
         onLongPress={handleLongPress}
         delayLongPress={200}
         style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1 }]}
@@ -202,12 +212,10 @@ const MessageItem = ({
       <Menu
         visible={menuVisible}
         onDismiss={() => setMenuVisible(false)}
-        anchor={{ x: 0, y: 0 }} // This will be ignored as we're using contentStyle
+        anchor={menuAnchor}
         contentStyle={{
           backgroundColor: theme.cardBackgroundColor,
           borderRadius: 12,
-          marginTop: -100, // Adjust based on your needs
-          marginLeft: isOwnMessage ? -100 : 50,
         }}
       >
         <Menu.Item

@@ -3,8 +3,8 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { View, TouchableOpacity, Text } from "react-native";
 import ContextMenu from "react-native-context-menu-view";
 import { LinearGradient } from "expo-linear-gradient";
-import { styles } from "../styles";
-import { Channel, MenuAction } from "../types";
+import { styles } from "../../app/(users)/(tabs)/(teams)/(channels)/styles";
+import { Channel, MenuAction } from "../../app/(users)/(tabs)/(teams)/(channels)/types";
 
 interface ChannelHeaderProps {
   channel: Channel;

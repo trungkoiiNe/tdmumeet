@@ -4,7 +4,7 @@ import { Modal, Text, TextInput, Button, Chip, SegmentedButtons, IconButton } fr
 import pickupImage from '@/utils/avatar';
 import { useThemeStore } from '@/stores/themeStore';
 import { lightTheme, darkTheme } from '@/utils/themes';
-import { TAG_OPTIONS, VISIBILITY_OPTIONS } from '../constants';
+import { TAG_OPTIONS, VISIBILITY_OPTIONS } from './constants';
 
 interface CreatePostModalProps {
     visible: boolean;

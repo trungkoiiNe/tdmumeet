@@ -23,12 +23,12 @@ import { useThemeStore } from "@/stores/themeStore";
 import { lightTheme, darkTheme } from "@/utils/themes";
 import { StyleSheet } from "react-native";
 import type { Channel, Message, MenuAction } from "./types";
-import ChannelHeader from "./components/ChannelHeader";
-import MessageList from "./components/MessageList";
-import MessageInput from "./components/MessageInput";
-import MessageSkeleton from "./components/MessageSkeleton";
-import NoAccessView from "./components/NoAccessView";
-import ErrorView from "./components/ErrorView";
+import ChannelHeader from "@/components/Channels/ChannelHeader";
+import MessageList from "@/components/Channels/MessageList";
+import MessageInput from "@/components/Channels/MessageInput";
+import MessageSkeleton from "@/components/Channels/MessageSkeleton";
+import NoAccessView from "@/components/Channels/NoAccessView";
+import ErrorView from "@/components/Channels/ErrorView";
 import React from "react";
 
 export default function ChannelDetailsScreen() {
@@ -407,7 +407,7 @@ export default function ChannelDetailsScreen() {
         </Portal>
       </KeyboardAvoidingView>
     </PaperProvider>
-);
+  );
 }
 
 // Theme-based dynamic styles

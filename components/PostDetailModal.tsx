@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, Image } from 'react-native';
 import { Modal, Text, Button, Avatar, Divider, Chip } from 'react-native-paper';
 import { useThemeStore } from '@/stores/themeStore';
 import { lightTheme, darkTheme } from '@/utils/themes';
-import { getVisibilityIcon } from '../app/(users)/(tabs)/posts/constants';
+import { getVisibilityIcon } from './Post/constants';
 
 interface PostDetailModalProps {
   visible: boolean;

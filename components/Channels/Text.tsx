@@ -1,5 +1,5 @@
 import { Text as RNText, type TextProps as RNTextProps } from "react-native";
-import { theme } from "../styles";
+import { theme } from "../../app/(users)/(tabs)/(teams)/(channels)/styles";
 import React from "react";
 
 interface TextProps extends RNTextProps {

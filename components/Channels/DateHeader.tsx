@@ -1,5 +1,5 @@
 import { View, Text } from "react-native";
-import { styles } from "../styles";
+import { styles } from "../../app/(users)/(tabs)/(teams)/(channels)/styles";
 import { formatMessageDate } from "@/utils/dateUtils";
 import React from "react";
 

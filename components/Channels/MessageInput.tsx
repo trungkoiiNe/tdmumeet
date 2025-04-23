@@ -10,7 +10,7 @@ import {
 import { IconButton, Surface } from "react-native-paper";
 // import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { styles, theme } from "../styles";
+import { styles, theme } from "../../app/(users)/(tabs)/(teams)/(channels)/styles";
 import React from "react";
 import { Text } from "react-native";
 interface MessageInputProps {

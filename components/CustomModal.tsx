@@ -7,14 +7,17 @@ import {
   ActivityIndicator,
   TextInput,
   StyleSheet,
-  Platform,
   Dimensions,
+  Platform,
 } from "react-native";
+import { useThemeStore } from "@/stores/themeStore";
+import { lightTheme, darkTheme } from "@/utils/themes";
 
-type ModalType =
+export type ModalType =
   | "alert"
   | "input"
   | "deleteConfirm"
+  | "logoutConfirm"
   | "loading"
   | "custom"
   | "information";
@@ -27,6 +30,9 @@ type CustomModalProps = {
   onClose: () => void;
   onConfirm?: (inputValue?: string) => void;
   children?: React.ReactNode;
+  confirmationValue?: string;
+  onChangeConfirmationValue?: (v: string) => void;
+  confirmDisabled?: boolean;
 };
 
 const MODAL_WIDTH = Dimensions.get("window").width * 0.9;
@@ -40,8 +46,23 @@ const CustomModal = ({
   onClose,
   onConfirm,
   children,
+  confirmationValue,
+  onChangeConfirmationValue,
+  confirmDisabled,
 }: CustomModalProps) => {
   const [inputValue, setInputValue] = useState("");
+  const { isDarkMode } = useThemeStore();
+  const theme = isDarkMode ? darkTheme : lightTheme;
+
+  const handleConfirm = () => {
+    if (modalType === "input") {
+      onConfirm?.(inputValue);
+    } else if (modalType === "deleteConfirm") {
+      onConfirm?.(confirmationValue);
+    } else {
+      onConfirm?.();
+    }
+  };
 
   return (
     <Modal
@@ -50,28 +71,35 @@ const CustomModal = ({
       visible={visible}
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
-          {/* Header Section */}
-          {modalType !== "loading" && title && (
-            <View style={styles.header}>
-              <Text style={styles.title}>{title}</Text>
+      <View style={[styles.overlay, { backgroundColor: theme.overlay || 'rgba(0, 0, 0, 0.4)' }]}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.cardBackgroundColor }]}>
+          {/* Header */}
+          {title && (
+            <View style={[styles.header, { borderBottomColor: theme.borderColor }]}>
+              <Text style={[styles.title, { color: theme.textColor }]}>{title}</Text>
             </View>
           )}
 
-          {/* Body Content */}
+          {/* Body */}
           <View style={styles.body}>
             {modalType === "alert" && message && (
-              <Text style={styles.message}>{message}</Text>
+              <Text style={[styles.message, { color: theme.secondaryTextColor }]}>{message}</Text>
             )}
 
             {modalType === "input" && (
               <>
-                {message && <Text style={styles.message}>{message}</Text>}
+                {message && <Text style={[styles.message, { color: theme.secondaryTextColor }]}>{message}</Text>}
                 <TextInput
-                  style={styles.input}
-                  placeholder="Enter value..."
-                  placeholderTextColor="#94a3b8"
+                  style={[
+                    styles.input,
+                    {
+                      borderColor: theme.inputBorderColor,
+                      color: theme.textColor,
+                      backgroundColor: theme.cardBackgroundColor,
+                    },
+                  ]}
+                  placeholder={title || "Enter value..."}
+                  placeholderTextColor={theme.tertiaryTextColor}
                   value={inputValue}
                   onChangeText={setInputValue}
                   autoFocus
@@ -79,69 +107,145 @@ const CustomModal = ({
               </>
             )}
 
-            {modalType === "deleteConfirm" && message && (
-              <Text style={[styles.message, styles.dangerText]}>{message}</Text>
+            {modalType === "deleteConfirm" && (
+              <>
+                <Text style={[styles.message, styles.dangerText, { color: theme.dangerColor }]}>{message}</Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      borderColor: theme.inputBorderColor,
+                      color: theme.textColor,
+                      backgroundColor: theme.cardBackgroundColor,
+                    },
+                  ]}
+                  placeholder="Type team name to confirm..."
+                  placeholderTextColor={theme.tertiaryTextColor}
+                  value={confirmationValue}
+                  onChangeText={onChangeConfirmationValue}
+                  autoFocus
+                />
+              </>
+            )}
+
+            {modalType === "logoutConfirm" && message && (
+              <>
+                <Text style={[styles.message, { color: theme.secondaryTextColor }]}>{message}</Text>
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.button,
+                      styles.cancelButton,
+                      { backgroundColor: theme.cancelButtonBackground },
+                    ]}
+                    onPress={onClose}
+                  >
+                    <Text
+                      style={[
+                        styles.cancelButtonText,
+                        { color: theme.cancelButtonText },
+                      ]}
+                    >
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.button,
+                      styles.confirmButton,
+                      { backgroundColor: theme.primaryColor },
+                    ]}
+                    onPress={() => onConfirm && onConfirm()}
+                  >
+                    <Text
+                      style={[
+                        styles.confirmButtonText,
+                        { color: theme.buttonText },
+                      ]}
+                    >
+                      Logout
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
             )}
 
             {modalType === "loading" && (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#3b82f6" />
-                {message && <Text style={styles.loadingText}>{message}</Text>}
+                <ActivityIndicator size="large" color={theme.primaryColor} />
+                {message && <Text style={[styles.loadingText, { color: theme.secondaryTextColor }]}>{message}</Text>}
               </View>
             )}
 
             {modalType === "custom" && children}
 
             {modalType === "information" && message && (
-              <Text style={styles.message}>{message}</Text>
-            )}
-
-            {modalType === "information" && message && (
-              <Text style={styles.message}>{message}</Text>
+              <Text style={[styles.message, { color: theme.secondaryTextColor }]}>{message}</Text>
             )}
           </View>
 
-          {/* Footer Buttons */}
-          {modalType !== "loading" && (
-            <View style={styles.footer}>
-              <TouchableOpacity
+          {/* Footer Buttons (Only for specific types needing a generic footer) */}
+          {(modalType === "alert" || modalType === "input" || modalType === "deleteConfirm" || modalType === "information") && (
+            <View style={[styles.footer, { borderTopColor: theme.borderColor }]}>
+              {/* Optional Cancel Button - Uncomment if needed for these types */}
+              {/* <TouchableOpacity
                 onPress={onClose}
-                style={[styles.button, styles.cancelButton]}
+                style={[
+                  styles.button,
+                  styles.cancelButton,
+                  { backgroundColor: theme.cancelButtonBackground },
+                ]}
                 activeOpacity={0.8}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
+                <Text style={[styles.cancelButtonText, { color: theme.cancelButtonText }]}>Cancel</Text>
+              </TouchableOpacity> */}
 
+              {/* Confirm/Action Button */}
               {(modalType === "alert" ||
                 modalType === "input" ||
-                modalType === "deleteConfirm") && (
+                modalType === "deleteConfirm") &&
+                onConfirm && (
+                  <TouchableOpacity
+                    onPress={handleConfirm}
+                    style={[
+                      styles.button,
+                      modalType === "deleteConfirm"
+                        ? [styles.dangerButton, { backgroundColor: theme.dangerColor }]
+                        : [styles.confirmButton, { backgroundColor: theme.primaryColor }],
+                      confirmDisabled && styles.disabledButton,
+                    ]}
+                    disabled={confirmDisabled}
+                    activeOpacity={confirmDisabled ? 1 : 0.8}
+                  >
+                    <Text
+                      style={[
+                        styles.confirmButtonText,
+                        { color: theme.buttonText },
+                      ]}
+                    >
+                      {modalType === "deleteConfirm"
+                        ? "Delete"
+                        : modalType === "input"
+                          ? "Submit"
+                          : "Confirm"}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+              {/* Close Button for Information Modal */}
+              {modalType === "information" && (
                 <TouchableOpacity
-                  onPress={() =>
-                    onConfirm?.(modalType === "input" ? inputValue : undefined)
-                  }
+                  onPress={onClose}
                   style={[
                     styles.button,
-                    modalType === "deleteConfirm"
-                      ? styles.dangerButton
-                      : styles.confirmButton,
+                    styles.confirmButton,
+                    { backgroundColor: theme.primaryColor },
                   ]}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.confirmButtonText}>OK</Text>
+                  <Text style={[styles.confirmButtonText, { color: theme.buttonText }]}>Close</Text>
                 </TouchableOpacity>
               )}
-            </View>
-          )}
-
-          {modalType === "information" && (
-            <View style={styles.footer}>
-              <TouchableOpacity
-                onPress={onClose}
-                style={[styles.button, styles.confirmButton]}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.confirmButtonText}>OK</Text>
-              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -151,17 +255,25 @@ const CustomModal = ({
 };
 
 const styles = StyleSheet.create({
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 16,
+    marginTop: 24,
+    marginBottom: 8,
+  },
   overlay: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
     padding: 16,
+    opacity:1
+
   },
   modalContainer: {
     width: MODAL_WIDTH,
     maxWidth: MAX_MODAL_WIDTH,
-    backgroundColor: "white",
     borderRadius: 16,
     overflow: "hidden",
     ...Platform.select({
@@ -178,13 +290,11 @@ const styles = StyleSheet.create({
   },
   header: {
     borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
     padding: 20,
   },
   title: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#1e293b",
     textAlign: "center",
   },
   body: {
@@ -192,22 +302,18 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 16,
-    color: "#64748b",
     lineHeight: 24,
     textAlign: "center",
   },
   dangerText: {
-    color: "#dc2626",
     fontWeight: "500",
   },
   input: {
     height: 48,
     borderWidth: 1,
-    borderColor: "#cbd5e1",
     borderRadius: 8,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: "#1e293b",
     marginTop: 16,
   },
   loadingContainer: {
@@ -219,14 +325,12 @@ const styles = StyleSheet.create({
   loadingText: {
     marginLeft: 16,
     fontSize: 16,
-    color: "#64748b",
   },
   footer: {
     flexDirection: "row",
     justifyContent: "flex-end",
     borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
-    padding: 16,
+    padding: 20,
     gap: 12,
   },
   button: {
@@ -237,24 +341,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  cancelButton: {
-    backgroundColor: "#f1f5f9",
-  },
+  cancelButton: {},
   cancelButtonText: {
-    color: "#64748b",
     fontSize: 16,
     fontWeight: "500",
   },
-  confirmButton: {
-    backgroundColor: "#3b82f6",
-  },
-  dangerButton: {
-    backgroundColor: "#dc2626",
-  },
+  confirmButton: {},
+  dangerButton: {},
   confirmButtonText: {
-    color: "white",
     fontSize: 16,
     fontWeight: "500",
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
 });
 export default CustomModal;

@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import { FlashList } from "@shopify/flash-list";
 import { View, ActivityIndicator } from "react-native";
 import { Button } from "react-native-paper";
-import type { Message } from "../types";
+import type { Message } from "../../app/(users)/(tabs)/(teams)/(channels)/types";
 import { useThemeStore } from "@/stores/themeStore";
 import { lightTheme, darkTheme } from "@/utils/themes";
 import { StyleSheet } from "react-native";
@@ -127,7 +127,7 @@ const MessageList = ({
       scrollEventThrottle={16}
       onContentSizeChange={() => {
         if (autoScrollEnabled) {
-          flatListRef.current?.scrollToEnd({ animated: false });
+          flatListRef.current?.scrollToEnd({ animated: true });
         }
       }}
       ListHeaderComponent={renderHeader}

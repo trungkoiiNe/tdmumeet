@@ -102,7 +102,7 @@ const SettingItem: React.FC<{
         <Ionicons
           name={icon as any}
           size={22}
-          color={theme.accentColor}
+          color={theme.editButtonBackground}
           style={styles.settingIcon}
         />
         <Text style={[styles.settingText, { color: theme.textColor }]}>
@@ -304,9 +304,9 @@ const BackendConfigSection: React.FC<{ theme: typeof lightTheme | typeof darkThe
     <>
       <SectionHeader title="Backend Configuration" />
       <SettingsCard>
-        <InfoItem 
-          label="Backend IP" 
-          value={backendIP} 
+        <InfoItem
+          label="Backend IP"
+          value={backendIP}
           editable={true}
           onChangeText={handleIPChange}
         />
@@ -330,9 +330,9 @@ const AppearanceSection: React.FC<AppearanceSectionProps> = React.memo(
                 onValueChange={toggleTheme}
                 trackColor={{
                   false: "#767577",
-                  true: theme.accentColor + "80",
+                  true: theme.editButtonBackground + "80",
                 }}
-                thumbColor={isDarkMode ? theme.accentColor : "#f4f3f4"}
+                thumbColor={isDarkMode ? theme.editButtonBackground : "#f4f3f4"}
               />
             }
           />
@@ -363,8 +363,8 @@ const RecommendedSettingsSection: React.FC<
             <Switch
               value={notificationsEnabled}
               onValueChange={setNotificationsEnabled}
-              trackColor={{ false: "#767577", true: theme.accentColor + "80" }}
-              thumbColor={notificationsEnabled ? theme.accentColor : "#f4f3f4"}
+              trackColor={{ false: "#767577", true: theme.editButtonBackground + "80" }}
+              thumbColor={notificationsEnabled ? theme.editButtonBackground : "#f4f3f4"}
             />
           }
         />
@@ -376,8 +376,8 @@ const RecommendedSettingsSection: React.FC<
             <Switch
               value={dataUsage}
               onValueChange={setDataUsage}
-              trackColor={{ false: "#767577", true: theme.accentColor + "80" }}
-              thumbColor={dataUsage ? theme.accentColor : "#f4f3f4"}
+              trackColor={{ false: "#767577", true: theme.editButtonBackground + "80" }}
+              thumbColor={dataUsage ? theme.editButtonBackground : "#f4f3f4"}
             />
           }
         />
@@ -472,7 +472,7 @@ const SettingsModals: React.FC<SettingsModalsProps> = React.memo(
         {/* Logout Confirmation Modal */}
         <CustomModal
           visible={modalStates.showLogoutModal}
-          modalType="deleteConfirm"
+          modalType="logoutConfirm"
           title="Log Out"
           message="Are you sure you want to log out?"
           onClose={modalStates.closeLogoutModal}

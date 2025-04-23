@@ -37,6 +37,7 @@ interface AuthStore {
   getStoredToken: () => string;
   // getUserByUid: (uid: string) => Promise<Object | null>;
   getUserByUid: (uid: string) => Promise<Object | null>;
+  getAvatarByUid: (uid: string) => Promise<string | null>;
 }
 export const useAuthStore = create<AuthStore>((set) => ({
   getUser: () => {
@@ -107,7 +108,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
         message: "Avatar updated successfully",
       };
       toast(options);
-    } catch (error) {}
+    } catch (error) { }
   },
   getAvatar: async () => {
     try {
@@ -137,10 +138,22 @@ export const useAuthStore = create<AuthStore>((set) => ({
   getUserByUid: async (uid: string) => {
     try {
       const userDoc = await getDoc(doc(db, "users", uid));
+      //help me to read the data of this doc
+      // console.log(userDoc.data().displayName);
       return userDoc.data();
     } catch (error) {
       console.error(error);
       return null;
+    }
+  },
+  getAvatarByUid: async (uid: string) => {
+    try {
+      const userDoc = await getDoc(doc(db, "users", uid));
+      //help me to read the data of this doc
+      // console.log(userDoc.data().displayName);
+      return userDoc.data().photoURL;
+    } catch (error) {
+      console.error(error);
     }
   },
 }));

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Image, TouchableOpacity } from "react-native";
-import { styles } from "../styles";
+import { styles } from "../../app/(users)/(tabs)/(teams)/(channels)/styles";
 import ImageViewer from "./ImageViewer";
 import React from "react";
 

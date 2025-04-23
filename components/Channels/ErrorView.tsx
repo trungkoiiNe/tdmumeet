@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity } from "react-native";
-import { styles } from "../styles";
+import { styles } from "../../app/(users)/(tabs)/(teams)/(channels)/styles";
 import React from "react";
 
 interface ErrorViewProps {

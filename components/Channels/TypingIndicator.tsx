@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { View, Animated } from "react-native";
 import { Avatar } from "react-native-paper";
-import { styles } from "../styles";
+import { styles } from "../../app/(users)/(tabs)/(teams)/(channels)/styles";
 import React from "react";
 
 interface TypingIndicatorProps {

@@ -1,6 +1,6 @@
 import ContentLoader, { Rect } from "react-content-loader/native";
 import { useWindowDimensions, View } from "react-native";
-import { styles } from "../styles";
+import { styles } from "../../app/(users)/(tabs)/(teams)/(channels)/styles";
 import React from "react";
 const MessageSkeleton = () => {
   const { width } = useWindowDimensions();

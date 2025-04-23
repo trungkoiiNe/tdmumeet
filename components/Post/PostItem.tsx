@@ -6,7 +6,7 @@ import * as MediaLibrary from 'expo-media-library';
 import Animated, { SlideInRight, SlideOutLeft } from 'react-native-reanimated';
 import { useThemeStore } from '@/stores/themeStore';
 import { lightTheme, darkTheme } from '@/utils/themes';
-import { getVisibilityIcon } from '../constants';
+import { getVisibilityIcon } from './constants';
 import { FontAwesome } from '@expo/vector-icons';
 import CommentsSection from './CommentsSection';
 
